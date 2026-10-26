@@ -67,6 +67,56 @@ def test_falla_si_no_logra_corregir(escribir, tmp_path, servidor):
         motor_api.traducir_capitulo(motor_api.MotorAPI('modelo-prueba', servidor, clave=''), trabajo, Perfil(serie='Prueba'))
 
 
+class AnthropicFalso(BaseHTTPRequestHandler):
+    """Imita /v1/messages de Anthropic con las mismas respuestas encoladas."""
+    respuestas : list[str] = []
+    pedidos : list[dict] = []
+
+    def do_POST(self):
+        cuerpo = json.loads(self.rfile.read(int(self.headers['Content-Length'])))
+        AnthropicFalso.pedidos.append(cuerpo)
+        datos = {
+            'id': 'msg_prueba', 'type': 'message', 'role': 'assistant', 'model': cuerpo['model'],
+            'content': [{'type': 'text', 'text': AnthropicFalso.respuestas.pop(0)}],
+            'stop_reason': 'end_turn', 'stop_sequence': None,
+            'usage': {'input_tokens': 7, 'output_tokens': 3},
+        }
+        self.send_response(200)
+        self.send_header('Content-Type', 'application/json')
+        self.end_headers()
+        self.wfile.write(json.dumps(datos).encode())
+
+    def log_message(self, *_args):
+        pass
+
+
+def test_motor_anthropic_con_gateway(escribir, tmp_path):
+    pytest.importorskip('anthropic')
+    from subtrad.motor_anthropic import MotorAnthropic
+
+    http = HTTPServer(('127.0.0.1', 0), AnthropicFalso)
+    threading.Thread(target=http.serve_forever, daemon=True).start()
+    try:
+        origen = escribir('ep.en.ass', [('Default', '{\\i1}Hello{\\i0}')])
+        trabajo = tmp_path / 'trabajo'
+        partes.preparar(origen, trabajo)
+        AnthropicFalso.pedidos = []
+        AnthropicFalso.respuestas = ['[0] Hola', '[0] {\\i1}Hola{\\i0}']
+
+        motor = MotorAnthropic('claude-haiku-5-5', f'http://127.0.0.1:{http.server_port}', clave='prueba')
+        motor_api.traducir_capitulo(motor, trabajo, Perfil(serie='Prueba'))
+    finally:
+        http.shutdown()
+
+    primero = AnthropicFalso.pedidos[0]
+    assert primero['model'] == 'claude-haiku-5-5'
+    assert 'temperature' not in primero                       # la API ya no la acepta
+    assert 'SOLO con las lineas traducidas' in primero['system']
+    assert [m['role'] for m in AnthropicFalso.pedidos[1]['messages']] == ['user', 'assistant', 'user']
+    assert (trabajo / '001.out.txt').read_text(encoding='utf-8').strip() == '[0] {\\i1}Hola{\\i0}'
+    assert motor.uso.entrada == 14
+
+
 def test_prompt_api_tiene_las_mismas_reglas_que_el_agente(perfil_kingdom):
     prompt = partes.prompt_api(perfil_kingdom)
     assert 'Duke Hyou' in prompt and 'NUNCA voseo' in prompt and 'SOLO con las lineas traducidas' in prompt

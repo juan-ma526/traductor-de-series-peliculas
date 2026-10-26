@@ -165,7 +165,7 @@ def cmd_traducir(args : argparse.Namespace) -> int:
     objetivo = Path(args.objetivo)
     perfil = cargar_perfil(Path(args.perfil))
     try:
-        motor = motor_api.MotorAPI(args.modelo, args.url)
+        motor = motor_api.crear_motor(args.modelo, args.url, args.formato)
     except motor_api.ErrorAPI as error:
         print(f"ERROR: {error}")
         return 2
@@ -296,7 +296,8 @@ def construir_parser() -> argparse.ArgumentParser:
     p.add_argument('objetivo', help='carpeta con los originales o un subtitulo original')
     p.add_argument('--perfil', required=True)
     p.add_argument('--modelo', help='por defecto SUBTRAD_MODELO del .env')
-    p.add_argument('--url', help='base de la API, por defecto SUBTRAD_API_URL o la de OpenAI')
+    p.add_argument('--url', help='base de la API, por defecto SUBTRAD_API_URL o la oficial del formato')
+    p.add_argument('--formato', choices=['openai', 'anthropic'], help='por defecto SUBTRAD_API_FORMATO (openai)')
     p.add_argument('--paralelo', type=int, default=3, help='capitulos a la vez')
     p.add_argument('--lineas', type=int, default=partes.LINEAS_POR_PARTE)
     p.add_argument('--rehacer', action='store_true', help='incluir capitulos que ya tienen traduccion')

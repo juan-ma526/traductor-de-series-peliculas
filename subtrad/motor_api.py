@@ -76,13 +76,27 @@ class MotorAPI:
         return datos['choices'][0]['message']['content'] or ''
 
 
+def crear_motor(modelo : str|None = None, url : str|None = None, formato : str|None = None):
+    """Motor segun SUBTRAD_API_FORMATO: 'openai' (por defecto) o 'anthropic'."""
+    formato = (formato or config.valor('SUBTRAD_API_FORMATO', 'openai')).lower()
+    if formato == 'anthropic':
+        try:
+            from subtrad.motor_anthropic import MotorAnthropic
+        except ImportError as error:
+            raise ErrorAPI('Falta el SDK de Anthropic: pip install -e ".[anthropic]"') from error
+        return MotorAnthropic(modelo, url)
+    if formato != 'openai':
+        raise ErrorAPI(f"SUBTRAD_API_FORMATO desconocido: {formato} (usar 'openai' o 'anthropic')")
+    return MotorAPI(modelo, url)
+
+
 def _limpiar_respuesta(texto : str) -> str:
     """Algunos modelos envuelven la respuesta en un bloque de codigo."""
     lineas = [l for l in texto.strip().splitlines() if not l.strip().startswith('```')]
     return '\n'.join(lineas)
 
 
-def traducir_capitulo(motor : MotorAPI, trabajo : Path, perfil : Perfil) -> None:
+def traducir_capitulo(motor, trabajo : Path, perfil : Perfil) -> None:
     """Traduce todas las partes de una carpeta de trabajo (preparada con partes.preparar) y escribe los NNN.out.txt."""
     manifiesto = json.loads((trabajo / 'manifiesto.json').read_text(encoding='utf-8'))
     subs = cargar(Path(manifiesto['archivo']))
