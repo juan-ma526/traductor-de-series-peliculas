@@ -103,6 +103,10 @@ def escribir_instrucciones(trabajo : Path, origen : Path, salida : Path, perfil 
 
     ruta = trabajo / 'INSTRUCCIONES.txt'
     ruta.write_text(texto, encoding='utf-8')
+
+    # El manifiesto recuerda la salida, para saber despues si el capitulo quedo terminado
+    manifiesto['salida'] = str(salida)
+    (trabajo / 'manifiesto.json').write_text(json.dumps(manifiesto, indent=1), encoding='utf-8')
     return ruta
 
 

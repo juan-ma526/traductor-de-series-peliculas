@@ -2,18 +2,24 @@
 
   extraer      saca los subtitulos de los videos de una carpeta
   pendientes   lista originales y si ya tienen traduccion
-  preparar     divide un subtitulo en partes para el traductor
+  nombres      nombres propios de los originales que el perfil no cubre
+  preparar     divide subtitulos en partes para el traductor
   insertar     reinserta la traduccion validandola
+  limpiar      borra las carpetas de trabajo terminadas
   postproceso  aplica el perfil de la serie (nombres, unidades)
   revisar      controles de calidad de los traducidos
 """
 import argparse
 import collections
+import json
+import shutil
 import sys
 from pathlib import Path
 
-from subtrad import archivos, partes, postproceso, revisar, video
+from subtrad import archivos, nombres, partes, postproceso, revisar, video
 from subtrad.perfil import Perfil, cargar_perfil
+
+CARPETA_TRABAJO = '.traduccion'
 
 
 def _perfil(ruta : str|None) -> Perfil|None:
@@ -59,14 +65,58 @@ def cmd_pendientes(args : argparse.Namespace) -> int:
 
 
 def cmd_preparar(args : argparse.Namespace) -> int:
-    origen, trabajo = Path(args.archivo), Path(args.trabajo)
-    manifiesto = partes.preparar(origen, trabajo, args.lineas)
-    print(f"{origen.name}: {len(manifiesto.eventos)} lineas en {len(manifiesto.partes)} partes -> {trabajo}")
-
+    objetivo = Path(args.objetivo)
     perfil = _perfil(args.perfil)
+
+    # Carpeta: prepara todos los originales que todavia no tienen traduccion
+    if objetivo.is_dir():
+        if perfil is None:
+            print("ERROR: para preparar una carpeta hace falta --perfil")
+            return 1
+        base = Path(args.trabajo) if args.trabajo else objetivo / CARPETA_TRABAJO
+        for pendiente in archivos.pendientes(objetivo, perfil.codigo):
+            if pendiente.ya_traducido and not args.rehacer:
+                continue
+            trabajo = base / pendiente.origen.stem
+            partes.preparar(pendiente.origen, trabajo, args.lineas)
+            print(f"INSTRUCCIONES\t{partes.escribir_instrucciones(trabajo, pendiente.origen, pendiente.salida, perfil)}")
+        return 0
+
+    trabajo = Path(args.trabajo) if args.trabajo else objetivo.parent / CARPETA_TRABAJO / objetivo.stem
+    manifiesto = partes.preparar(objetivo, trabajo, args.lineas)
+    print(f"{objetivo.name}: {len(manifiesto.eventos)} lineas en {len(manifiesto.partes)} partes -> {trabajo}")
     if perfil:
-        salida = Path(args.salida) if args.salida else archivos.ruta_salida(origen, perfil.codigo)
-        print(f"Instrucciones: {partes.escribir_instrucciones(trabajo, origen, salida, perfil)}")
+        salida = Path(args.salida) if args.salida else archivos.ruta_salida(objetivo, perfil.codigo)
+        print(f"INSTRUCCIONES\t{partes.escribir_instrucciones(trabajo, objetivo, salida, perfil)}")
+    return 0
+
+
+def cmd_limpiar(args : argparse.Namespace) -> int:
+    """Borra las carpetas de trabajo cuyo subtitulo traducido ya existe."""
+    base = Path(args.carpeta) / CARPETA_TRABAJO
+    if not base.is_dir():
+        return 0
+
+    quedan = []
+    for trabajo in sorted(base.iterdir()):
+        manifiesto = trabajo / 'manifiesto.json'
+        salida = json.loads(manifiesto.read_text(encoding='utf-8')).get('salida') if manifiesto.exists() else None
+        if salida and Path(salida).exists():
+            shutil.rmtree(trabajo)
+        else:
+            quedan.append(trabajo.name)
+
+    if not quedan:
+        base.rmdir()
+    print(f"Quedan sin terminar: {quedan}" if quedan else "Carpeta de trabajo eliminada")
+    return 0
+
+
+def cmd_nombres(args : argparse.Namespace) -> int:
+    objetivo = Path(args.objetivo)
+    originales = [objetivo] if objetivo.is_file() else [p.origen for p in archivos.pendientes(objetivo, args.destino)]
+    for nombre, n in nombres.candidatos(originales, _perfil(args.perfil), args.minimo):
+        print(f"{n:5}  {nombre}")
     return 0
 
 
@@ -126,13 +176,25 @@ def construir_parser() -> argparse.ArgumentParser:
     p.add_argument('--destino', default='es')
     p.set_defaults(funcion=cmd_pendientes)
 
-    p = comandos.add_parser('preparar', help='divide un subtitulo en partes para el traductor')
-    p.add_argument('archivo')
-    p.add_argument('trabajo', help='carpeta de trabajo')
-    p.add_argument('--perfil', help='perfil YAML; si se indica, escribe INSTRUCCIONES.txt')
+    p = comandos.add_parser('preparar', help='divide subtitulos en partes para el traductor')
+    p.add_argument('objetivo', help='un subtitulo original o una carpeta (prepara todos los pendientes)')
+    p.add_argument('--perfil', help='perfil YAML; escribe INSTRUCCIONES.txt para el agente')
+    p.add_argument('--trabajo', help=f'carpeta de trabajo (por defecto <carpeta>/{CARPETA_TRABAJO}/<nombre>)')
     p.add_argument('--salida', help='archivo traducido final (por defecto <nombre>.<codigo>.<ext>)')
     p.add_argument('--lineas', type=int, default=partes.LINEAS_POR_PARTE)
+    p.add_argument('--rehacer', action='store_true', help='incluir capitulos que ya tienen traduccion')
     p.set_defaults(funcion=cmd_preparar)
+
+    p = comandos.add_parser('limpiar', help='borra las carpetas de trabajo de capitulos terminados')
+    p.add_argument('carpeta')
+    p.set_defaults(funcion=cmd_limpiar)
+
+    p = comandos.add_parser('nombres', help='nombres propios de los originales que el perfil no cubre')
+    p.add_argument('objetivo', help='subtitulo original o carpeta')
+    p.add_argument('--perfil')
+    p.add_argument('--destino', default='es')
+    p.add_argument('--minimo', type=int, default=4, help='apariciones minimas')
+    p.set_defaults(funcion=cmd_nombres)
 
     p = comandos.add_parser('insertar', help='reinserta la traduccion validandola')
     p.add_argument('archivo')

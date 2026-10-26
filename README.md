@@ -26,19 +26,34 @@ python -m venv .venv
 .venv/bin/python -m pip install -e ".[dev]"         # Linux/Mac
 ```
 
+## Uso con Claude Code (recomendado)
+
+Abrir Claude Code en la carpeta del repo y pedir:
+
+```
+/traducir-serie "<carpeta de la temporada o pelicula>"
+```
+
+Identifica la serie (pregunta si hay dudas), carga o crea su perfil, extrae el ingles de los videos, revisa lo que ya estaba traducido, traduce los capitulos con subagentes (Haiku, para ahorrar consumo), corrige nombres y unidades, controla la calidad y deja un reporte.
+No hace falta API key: usa la suscripcion de Claude.
+
+Para solo sacar los subtitulos de los videos: `/extraer-subtitulos "<carpeta>"`.
+
 ## Uso (comandos sueltos)
 
 ```bash
 subtrad extraer "<carpeta>"                       # saca los subs en ingles de los videos (.en.ass)
 subtrad pendientes "<carpeta>"                    # que falta traducir y que ya esta traducido
-subtrad preparar ep.en.ass trabajo/ --perfil series/kingdom-2012.yaml
-#   -> trabajo/001.txt, 002.txt... + INSTRUCCIONES.txt para el agente traductor
-subtrad insertar ep.en.ass trabajo/ ep.es.ass     # reinserta y valida la traduccion
+subtrad nombres "<carpeta>" --perfil <perfil>     # nombres propios que el perfil todavia no cubre
+subtrad preparar "<carpeta>" --perfil series/kingdom-2012.yaml
+#   -> <carpeta>/.traduccion/<capitulo>/001.txt, 002.txt... + INSTRUCCIONES.txt para el agente traductor
+subtrad insertar ep.en.ass <trabajo> ep.es.ass    # reinserta y valida la traduccion (lo ejecuta el agente)
+subtrad limpiar "<carpeta>"                       # borra las carpetas de trabajo terminadas
 subtrad postproceso "<carpeta>" --perfil series/kingdom-2012.yaml   # nombres, unidades
 subtrad revisar "<carpeta>" --perfil series/kingdom-2012.yaml       # controles de calidad
 ```
 
-El flujo completo de punta a punta (`/traducir-serie "<carpeta>"`) se arma sobre estos comandos; ver [docs/PLAN.md](docs/PLAN.md).
+El skill `/traducir-serie` usa estos mismos comandos; cualquier otro agente (OpenCode, etc.) puede seguir el mismo flujo, descripto en [.claude/skills/traducir-serie/SKILL.md](.claude/skills/traducir-serie/SKILL.md).
 
 ## Perfiles de serie
 

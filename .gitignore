@@ -33,3 +33,7 @@ config.local.yaml
 .idea/
 .DS_Store
 Thumbs.db
+
+# Configuracion local de Claude Code y respaldos de subtitulos
+.claude/settings.local.json
+.respaldo/

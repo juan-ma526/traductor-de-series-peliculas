@@ -171,11 +171,11 @@ Todo esto aparecio revisando las temporadas 1 a 6 de Kingdom y tiene que quedar 
 
 ## 8. Pasos para armar el repo nuevo
 
-1. [ ] Crear el repo vacio en GitHub (nombre a definir) con `README`, `LICENSE` (MIT), `.gitignore`.
+1. [x] Crear el repo vacio en GitHub (nombre a definir) con `README`, `LICENSE` (MIT), `.gitignore`.
 2. [x] Pasar los scripts actuales a un paquete Python `subtrad` con CLI y dependencias declaradas (`pysubs2`, `regex`, `charset-normalizer`, `pyyaml`).
 3. [x] Convertir los glosarios de Kingdom a `series/kingdom-2012.yaml` y hacer `postproceso.py` generico.
 4. [x] Pasar los controles de calidad (seccion 7) a `subtrad revisar` con tests unitarios usando subtitulos de ejemplo inventados.
-5. [ ] Adaptador Claude Code: skills que llaman a la CLI (sin rutas fijas `D:\...`).
+5. [x] Adaptador Claude Code: skills que llaman a la CLI (sin rutas fijas `D:\...`).
 6. [ ] Adaptador OpenCode: comandos y agentes equivalentes.
 7. [ ] Motor por API compatible con OpenAI (API key en `.env`).
 8. [ ] `identificar.py` con TMDB/AniList y pregunta al usuario si hay dudas.

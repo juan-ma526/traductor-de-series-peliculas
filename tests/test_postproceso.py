@@ -63,6 +63,17 @@ def test_unidades(escribir, perfil_kingdom):
     ]
 
 
+def test_titulo_con_articulo(escribir, perfil_kingdom):
+    # Error real (prueba de punta a punta): "el señor Changwen" quedaba "el Shoubunkun"
+    ruta = escribir('S4E01.es.ass', [
+        ('Default', '¿Sabes lo que dijo el señor Changwen?'),
+        ('Default', 'Es la orden del señor Changping.'),
+        ('Default', 'Lord Changwen, espere.'),
+    ])
+    aplicar_perfil(ruta, perfil_kingdom)
+    assert textos(ruta) == ['¿Sabes lo que dijo Shoubunkun?', 'Es la orden de Shouheikun.', 'Shoubunkun, espere.']
+
+
 def test_srt(tmp_path, perfil_kingdom):
     ruta = tmp_path / 'S1E32.es.srt'
     ruta.write_text('1\n00:00:01,000 --> 00:00:02,000\nXin y Piao.\n', encoding='utf-8')

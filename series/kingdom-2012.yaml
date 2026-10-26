@@ -136,9 +136,16 @@ mapear:
   Yanmen: Ganmon
   Yè: Gyou
 
-# Nombres con titulo opcional delante ("Lord Changwen", "señor Changwen", "Changwenjun")
+# Nombres con titulo opcional delante ("Lord Changwen", "el señor Changwen", "Changwenjun").
+# El "-kun" japones ya es el titulo, asi que se va el "señor" y su articulo. Se aplican en este orden.
 mapear_regex:
+  '[Ee]l (?:[Ll]ord|[Ss]eñor) Changwen(?:jun)?': Shoubunkun
+  'del (?:[Ll]ord|[Ss]eñor) Changwen(?:jun)?': de Shoubunkun
+  'al (?:[Ll]ord|[Ss]eñor) Changwen(?:jun)?': a Shoubunkun
   '(?:[Ll]ord |[Ss]eñor )?Changwen(?:jun)?': Shoubunkun
+  '[Ee]l (?:[Ll]ord|[Ss]eñor) Changping(?:jun)?': Shouheikun
+  'del (?:[Ll]ord|[Ss]eñor) Changping(?:jun)?': de Shouheikun
+  'al (?:[Ll]ord|[Ss]eñor) Changping(?:jun)?': a Shouheikun
   '(?:[Ll]ord |[Ss]eñor )?Changping(?:jun)?': Shouheikun
 
 # Nombres que significan cosas distintas segun la temporada: nunca se reemplazan globalmente
@@ -159,3 +166,14 @@ reemplazos:
   Thousand Man Unit: Unidad de Mil Hombres
   Thousand-Man Unit: Unidad de Mil Hombres
   Noko Squad: Escuadrón Noko
+  Xi Bai the Spear: Xi Bai, la Lanza
+  King of Qi: Rey de Qi
+  # Articulo que sobra delante de un nombre con "-kun"
+  el Shoubunkun: Shoubunkun
+  El Shoubunkun: Shoubunkun
+  del Shoubunkun: de Shoubunkun
+  al Shoubunkun: a Shoubunkun
+  el Shouheikun: Shouheikun
+  El Shouheikun: Shouheikun
+  del Shouheikun: de Shouheikun
+  al Shouheikun: a Shouheikun
