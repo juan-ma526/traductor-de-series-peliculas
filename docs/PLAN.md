@@ -5,6 +5,30 @@ Nace de lo armado sobre el clon de `llm-subtrans`, del que no se usa el codigo.
 
 ---
 
+## 0. Flujo principal: "aca estan los videos"
+
+El usuario solo indica la carpeta (y opcionalmente idioma y reglas).
+Todo lo demas lo hace el agente, preguntando solo cuando hace falta:
+
+```
+/traducir-serie "<carpeta de la temporada>"
+```
+
+1. **Identificar la serie** por la carpeta y los archivos. Si es ambigua (ej. Kingdom anime vs. Kingdom de Netflix), preguntar.
+2. **Cargar el perfil** de la serie (`series/<serie>.yaml`).
+   Si no existe, crearlo: preguntar idioma y reglas (o usar las por defecto) y proponer la lista de nombres que no se traducen.
+3. **Conseguir el ingles** de cada capitulo: pista dentro del video, archivo al lado o descarga + sincronizacion.
+4. **Saltear lo ya hecho** (capitulos que ya tienen `.es`), salvo que se pida rehacer.
+5. **Traducir** cada capitulo con el motor elegido (Claude Code, OpenCode o API), en paralelo.
+6. **Postproceso** del perfil: nombres, unidades, carteles.
+7. **Controles de calidad** (seccion 7) y correccion automatica de lo que se pueda.
+8. **Reporte final**: capitulos listos, problemas encontrados, nombres dudosos para agregar al perfil.
+
+El resultado queda al lado de cada video (`episodio.es.ass`) para que Plex lo tome solo.
+Los pasos 1-8 tambien existen como comandos sueltos para usarlos por separado.
+
+---
+
 ## 1. Decision: repo nuevo, no subir el clon
 
 - `llm-subtrans` (MIT, de machinewrapped) es otro proyecto: GUI, proveedores por API key, miles de archivos.
