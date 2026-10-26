@@ -18,7 +18,10 @@ Todo lo demas lo hace el agente, preguntando solo cuando hace falta:
 2. **Cargar el perfil** de la serie (`series/<serie>.yaml`).
    Si no existe, crearlo: preguntar idioma y reglas (o usar las por defecto) y proponer la lista de nombres que no se traducen.
 3. **Conseguir el ingles** de cada capitulo: pista dentro del video, archivo al lado o descarga + sincronizacion.
-4. **Saltear lo ya hecho** (capitulos que ya tienen `.es`), salvo que se pida rehacer.
+4. **Revisar lo que ya esta traducido** (capitulos que ya tienen `.es`, hechos por nosotros o conseguidos de otro lado). No se saltean a ciegas:
+   - se les pasan los mismos controles de calidad (seccion 7): sincronizacion con el ingles o con el audio, lineas sin traducir, etiquetas coladas, voseo, nombres segun el perfil;
+   - si pasan, solo se les aplica el postproceso del perfil (nombres, unidades) y se dejan;
+   - si fallan, se corrige lo puntual (como el bloque en ingles de Kingdom S2E05) o se propone retraducir el capitulo entero, preguntando antes de pisar el archivo y guardando una copia del original.
 5. **Traducir** cada capitulo con el motor elegido (Claude Code, OpenCode o API), en paralelo.
 6. **Postproceso** del perfil: nombres, unidades, carteles.
 7. **Controles de calidad** (seccion 7) y correccion automatica de lo que se pueda.
@@ -88,7 +91,9 @@ Solo cambia quien traduce cada parte.
 
 ## 4. Perfiles de serie (YAML)
 
-Todo lo especifico de una serie pasa de codigo Python a datos:
+Todo lo especifico de una serie pasa de codigo Python a datos.
+El formato es generico: cada serie tiene su archivo en `series/`.
+Kingdom se usa como ejemplo en todo este plan porque es donde se aprendio todo, y `series/kingdom-2012.yaml` viene en el repo como perfil de ejemplo completo.
 
 ```yaml
 serie: Kingdom
