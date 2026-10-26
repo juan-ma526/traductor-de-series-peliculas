@@ -19,7 +19,9 @@ LINEA_TRADUCIDA = regex.compile(r'^\[(\d+)\]\s?(.*)$')
 TAGS_ASS = regex.compile(r'\{[^}]*\}')
 DIBUJO_ASS = regex.compile(r'\\p[1-9]')
 KARAOKE = regex.compile(r'\\[kK][fo]?\d')
-ESTILO_CANCION = regex.compile(r'(^|[\s_-])(op|ed|opening|ending|song|songs|karaoke|kara|lyrics?|romaji|kanji|insert)($|[\s_\d-])', regex.IGNORECASE)
+# Estilos de canciones: palabras sueltas (OP, ED, Song...) o partes de un nombre mas largo
+# (Escaflowne usa "romajied", "romajied5" para la letra del ending)
+ESTILO_CANCION = regex.compile(r'romaji|kanji|karaoke|lyric|(^|[\s_-])(op|ed|opening|ending|song|songs|kara|insert)($|[\s_\d-])', regex.IGNORECASE)
 
 # Restos del formato interno de otras herramientas (llm-subtrans) que no deben llegar a pantalla
 ETIQUETAS_COLADAS = regex.compile(r'(?:^|\\N)(?:Original|Translation)[:>]?\\N')

@@ -15,6 +15,8 @@ from subtrad import opensubtitles, sincronizar, video as videos
 from subtrad.archivos import cargar
 
 EPISODIO = regex.compile(r'(?i)(?<![a-z0-9])S(\d{1,2})(?:E(\d{1,3})|\s*-\s*(\d{1,3}))')
+# Estilo anime sin temporada: "Tenkuu_no_Escaflowne_-_01_(...)", "Serie - 01 [1080p]"
+EPISODIO_ANIME = regex.compile(r'[ _]-[ _](\d{1,3})(?:v\d)?[ _.(\[]')
 ACOTACION_SDH = regex.compile(r'\[[^\]]*\]|\([A-Z][A-Z \-]+\)')
 
 
@@ -38,9 +40,12 @@ class ResultadoVideo:
 
 def temporada_y_episodio(archivo : Path) -> tuple[int|None, int|None]:
     coincidencia = EPISODIO.search(archivo.name)
-    if not coincidencia:
-        return None, None
-    return int(coincidencia.group(1)), int(coincidencia.group(2) or coincidencia.group(3))
+    if coincidencia:
+        return int(coincidencia.group(1)), int(coincidencia.group(2) or coincidencia.group(3))
+    coincidencia = EPISODIO_ANIME.search(archivo.name)
+    if coincidencia:
+        return 1, int(coincidencia.group(1))
+    return None, None
 
 
 def es_sdh(ruta : Path, titulo : str = '') -> bool:
@@ -68,23 +73,41 @@ def _prioridad(candidato : Candidato) -> tuple[int, int, int]:
     return (orden, int(candidato.sdh), -len(cargar(candidato.ruta).events))
 
 
+PALABRAS_INGLES = regex.compile(r"\b(the|you|and|what|this|that|is|are|it's|don't|i'm|to|of|my|your|we|have)\b", regex.IGNORECASE)
+
+
+def parece_ingles(ruta : Path) -> bool:
+    """El texto de la pista esta en ingles (mas de un tercio de las lineas con palabras muy comunes del ingles)."""
+    textos = [e.plaintext for e in cargar(ruta).events if e.plaintext.strip()]
+    return bool(textos) and sum(bool(PALABRAS_INGLES.search(t)) for t in textos) / len(textos) > 0.33
+
+
 def _pistas_del_video(video : Path, idioma : str, temporal : Path) -> list[Candidato]:
+    """Pistas de texto del idioma pedido.
+    La etiqueta de idioma no alcanza (Escaflowne: los dialogos en ingles venian etiquetados "jpn", por ser para el
+    audio japones, y la pista "eng" solo tenia canciones y carteles): en ingles se mira tambien el contenido."""
     codigos = videos.IDIOMAS.get(idioma, {idioma})
     candidatos = []
     for pista in videos.pistas_subtitulos(video):
-        if pista.get('tags', {}).get('language', '').lower() not in codigos or pista.get('codec_name') not in videos.CODECS_TEXTO:
+        if pista.get('codec_name') not in videos.CODECS_TEXTO:
             continue
+        etiqueta_coincide = pista.get('tags', {}).get('language', '').lower() in codigos
+        if not etiqueta_coincide and idioma != 'en':
+            continue
+
         extension, codec = videos.CODECS_TEXTO[pista['codec_name']]
         destino = temporal / f"pista{pista['index']}.{extension}"
         subprocess.run(['ffmpeg', '-v', 'error', '-y', '-i', str(video), '-map', f"0:{pista['index']}", '-c:s', codec, str(destino)])
-        if destino.exists():
-            titulo = pista.get('tags', {}).get('title', '')
-            candidatos.append(Candidato(f"pista #{pista['index']} '{titulo}'", destino, es_sdh(destino, titulo)))
+        if not destino.exists() or (idioma == 'en' and not parece_ingles(destino)):
+            continue
+        titulo = pista.get('tags', {}).get('title', '')
+        etiqueta = pista.get('tags', {}).get('language', '?')
+        candidatos.append(Candidato(f"pista #{pista['index']} {etiqueta} '{titulo}'", destino, es_sdh(destino, titulo)))
     return candidatos
 
 
 def conseguir_video(video : Path, idioma : str = 'en', consulta : str = '', cliente : opensubtitles.Cliente|None = None,
-                    max_descargas : int = 2) -> ResultadoVideo:
+                    max_descargas : int = 2, idioma_audio : str|None = None) -> ResultadoVideo:
     """Elige y deja al lado del video el mejor subtitulo verificado: <video>.<idioma>.<ext>.
     Un subtitulo que ya estaba al lado del video tambien se verifica: puede estar mal."""
     temporal = Path(tempfile.mkdtemp(prefix='subtrad_'))
@@ -92,7 +115,7 @@ def conseguir_video(video : Path, idioma : str = 'en', consulta : str = '', clie
         existentes = [video.with_name(f'{video.stem}.{idioma}{ext}') for ext in ('.ass', '.srt', '.vtt')]
         existentes = [r for r in existentes if r.exists()]
 
-        audio = sincronizar.extraer_audio(video, temporal / 'audio.wav')
+        audio = sincronizar.extraer_audio(video, temporal / 'audio.wav', idioma_audio)
         candidatos = [Candidato('existente', r, es_sdh(r)) for r in existentes] + _pistas_del_video(video, idioma, temporal)
         for candidato in candidatos:
             candidato.verificacion = sincronizar.verificar(audio, candidato.ruta, temporal)

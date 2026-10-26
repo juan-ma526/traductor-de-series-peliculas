@@ -11,6 +11,8 @@ def test_temporada_y_episodio():
     assert conseguir.temporada_y_episodio(Path('World.Is.Dancing.S01E10.1080p.mkv')) == (1, 10)
     assert conseguir.temporada_y_episodio(Path('[HGS-Renc]_Kingdom_S3E01_[BD1080].mkv')) == (3, 1)
     assert conseguir.temporada_y_episodio(Path('[SubsPlease] Kingdom S6 - 02 (1080p).mkv')) == (6, 2)
+    assert conseguir.temporada_y_episodio(Path('[Cleo]Tenkuu_no_Escaflowne_-_07_(Dual Audio_10bit_BD1080p_x265).mkv')) == (1, 7)
+    assert conseguir.temporada_y_episodio(Path('[Grupo] Serie - 12v2 [1080p].mkv')) == (1, 12)
     assert conseguir.temporada_y_episodio(Path('pelicula.mkv')) == (None, None)
 
 
@@ -45,6 +47,10 @@ def _subtitulo(tmp_path : Path, inicios : list[int]) -> Path:
     (3500, [3500] * 20, sincronizar.CORRIDO),                              # corrido parejo: se corrige
     # Error real (World Is Dancing E03): subtitulo correcto, pero alass inventa cortes en escenas de musica
     (-90, [0] * 12 + [-36000] * 4 + [62000] * 4, sincronizar.ENCAJA),
+    # Caso real (Escaflowne E15): corrimiento casi nulo y menos de la mitad de las lineas lo confirman
+    (-30, [0] * 9 + [-40000] * 6 + [55000] * 5, sincronizar.ENCAJA),
+    # El mismo porcentaje con un corrimiento grande no alcanza
+    (-8000, [-8000] * 9 + [-40000] * 6 + [55000] * 5, sincronizar.NO_ENCAJA),
     # Error real (World Is Dancing E01): pista de otro anime, cada tramo se mueve distinto
     (-18580, [(-1) ** i * 20000 + i * 3000 for i in range(20)], sincronizar.NO_ENCAJA),
 ])

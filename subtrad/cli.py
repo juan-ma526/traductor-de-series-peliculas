@@ -75,7 +75,7 @@ def cmd_conseguir(args : argparse.Namespace) -> int:
     fallidos = 0
     for v in video.videos(carpeta):
         try:
-            resultado = conseguir.conseguir_video(v, args.idioma, consulta, cliente, args.max_descargas)
+            resultado = conseguir.conseguir_video(v, args.idioma, consulta, cliente, args.max_descargas, args.audio)
         except opensubtitles.ErrorOpenSubtitles as error:
             print(f"ERROR     {v.name}: {error}")
             fallidos += 1
@@ -265,6 +265,7 @@ def construir_parser() -> argparse.ArgumentParser:
     p.add_argument('--serie', help='nombre para buscar en OpenSubtitles (por defecto, el de la carpeta)')
     p.add_argument('--max-descargas', type=int, default=2, help='descargas maximas por video')
     p.add_argument('--sin-descargas', action='store_true', help='solo verificar lo que ya hay')
+    p.add_argument('--audio', help='idioma del audio contra el que verificar (por defecto japones/coreano/chino si hay, si no el primero)')
     p.set_defaults(funcion=cmd_conseguir)
 
     p = comandos.add_parser('pendientes', help='lista originales y si ya tienen traduccion')

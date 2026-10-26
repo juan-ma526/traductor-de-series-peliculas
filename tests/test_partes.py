@@ -31,11 +31,13 @@ def test_no_extrae_canciones_ni_comentarios(escribir, tmp_path):
     origen = escribir('ep.en.ass', [
         ('Default', 'Hello.'),
         ('OP Romaji', 'kimi no sora'),
+        ('romajied5', 'yakusoku wa iranai'),        # Escaflowne: letra del ending
+        ('Edward', 'Brother!'),                     # un personaje, no una cancion
         ('Default', '{\\k20}la{\\k30}la'),
         ('Default', '{\\p1}m 0 0 l 10 10{\\p0}'),
     ])
     manifiesto = partes.preparar(origen, tmp_path / 'trabajo')
-    assert manifiesto.eventos == [0]
+    assert manifiesto.eventos == [0, 3]
 
 
 def test_rechaza_tags_perdidos(escribir, tmp_path):

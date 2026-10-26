@@ -29,6 +29,9 @@ NO_ENCAJA = 'no_encaja'
 MOVIMIENTO_TOLERADO = 1000      # ms: una linea "coincide" si se mueve menos que esto respecto del corrimiento unico
 CORRIMIENTO_DESPRECIABLE = 300  # ms: por debajo de esto no vale la pena corregir
 COINCIDENCIA_MINIMA = 0.5       # fraccion de lineas que deben coincidir con el corrimiento unico
+# Si el corrimiento unico es practicamente cero alcanza con menos: un subtitulo de otro contenido no cae justo en cero.
+# Caso real (Escaflowne E15): corrimiento -30 ms y 46 % de lineas que coinciden, subtitulo correcto.
+COINCIDENCIA_MINIMA_SIN_CORRIMIENTO = 0.3
 
 
 class AlassNoEncontrado(Exception):
@@ -55,9 +58,27 @@ def ruta_alass() -> str:
     raise AlassNoEncontrado("No se encontro alass. Descargalo de github.com/kaegi/alass y pone su ruta en ALASS_PATH (.env)")
 
 
-def extraer_audio(video : Path, destino : Path, pista_audio : int = 0) -> Path:
+# Idiomas originales tipicos de anime y series asiaticas: si el video trae doblaje, el audio original es el que manda
+IDIOMAS_ORIGINALES = ('jpn', 'ja', 'kor', 'ko', 'chi', 'zho', 'zh')
+
+
+def elegir_pista_audio(video : Path, idioma : str|None = None) -> int:
+    """Indice (entre las pistas de audio) del audio contra el que se verifica.
+    Error real (Escaflowne): la primera pista era el doblaje en ingles y el subtitulo sigue al audio japones."""
+    salida = subprocess.run(['ffprobe', '-v', 'error', '-select_streams', 'a', '-show_entries', 'stream_tags=language',
+                             '-of', 'csv=p=0', str(video)], capture_output=True, text=True)
+    idiomas = [l.strip().lower() for l in salida.stdout.splitlines()]
+    preferidos = (idioma.lower(),) if idioma else IDIOMAS_ORIGINALES
+    for i, codigo in enumerate(idiomas):
+        if codigo in preferidos:
+            return i
+    return 0
+
+
+def extraer_audio(video : Path, destino : Path, idioma_audio : str|None = None) -> Path:
     """Audio mono a 16 kHz, suficiente para detectar voz y mucho mas liviano que el video."""
-    subprocess.run(['ffmpeg', '-v', 'error', '-y', '-i', str(video), '-map', f'0:a:{pista_audio}', '-ac', '1', '-ar', '16000', str(destino)],
+    pista = elegir_pista_audio(video, idioma_audio)
+    subprocess.run(['ffmpeg', '-v', 'error', '-y', '-i', str(video), '-map', f'0:a:{pista}', '-ac', '1', '-ar', '16000', str(destino)],
                    check=True)
     return destino
 
@@ -85,8 +106,10 @@ def verificar(audio : Path, subtitulo : Path, carpeta_temporal : Path|None = Non
     corrimiento = statistics.median(unico)
     coinciden = sum(abs(m - corrimiento) < MOVIMIENTO_TOLERADO for m in con_cortes) / len(con_cortes)
 
-    if coinciden < COINCIDENCIA_MINIMA:
+    despreciable = abs(corrimiento) < CORRIMIENTO_DESPRECIABLE
+    minimo = COINCIDENCIA_MINIMA_SIN_CORRIMIENTO if despreciable else COINCIDENCIA_MINIMA
+    if coinciden < minimo:
         return Verificacion(NO_ENCAJA, corrimiento, coinciden)
-    if abs(corrimiento) < CORRIMIENTO_DESPRECIABLE:
+    if despreciable:
         return Verificacion(ENCAJA, corrimiento, coinciden)
     return Verificacion(CORRIDO, corrimiento, coinciden, corregido)

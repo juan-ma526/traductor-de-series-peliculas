@@ -1,0 +1,27 @@
+# The Vision of Escaflowne (Tenkuu no Escaflowne, anime 1996, 26 capitulos).
+# No confundir con la pelicula "Escaflowne" (2000).
+
+serie: The Vision of Escaflowne
+año: 1996
+tipo: anime
+
+idioma_destino: Latin American Spanish
+codigo: es
+tratamiento: tuteo
+
+prompt: >
+  Translate to natural Latin American Spanish.
+  Keep character, kingdom, city, ship and mecha names unchanged.
+  "Guymelef" is a type of mecha: keep the word (plural "guymelefs").
+  "Mystic Moon" (Earth, seen from Gaea) is "la Luna Mística"; "Mystic Valley" is "el Valle Místico".
+  "Draconians" are "los draconianos".
+
+nombres_fijos: [
+  Van, Fanel, Hitomi, Kanzaki, Allen, Schezar, Merle, Folken, Dilandau, Millerna, Dryden, Dornkirk, Balgus, Yukari, Amano,
+  Celena, Chid, Naria, Eriya, Jajuka, Gaddes, Marlene, Plaktu, Voris,
+  Escaflowne, Gaea, Fanelia, Asturia, Zaibach, Freid, Palas, Atlantis, Crusade, Guymelef
+]
+
+reemplazos:
+  Mystic Moon: Luna Mística
+  Mystic Valley: Valle Místico
