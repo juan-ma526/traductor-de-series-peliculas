@@ -98,10 +98,15 @@ def conseguir_video(video : Path, idioma : str = 'en', consulta : str = '', clie
             candidato.verificacion = sincronizar.verificar(audio, candidato.ruta, temporal)
 
         sirven = [c for c in candidatos if c.verificacion and c.verificacion.estado != sincronizar.NO_ENCAJA]
+        aviso = ''
         if not sirven and cliente is not None:
             temporada, episodio = temporada_y_episodio(video)
             for resultado in cliente.buscar(consulta, temporada, episodio, idioma, video)[:max_descargas]:
-                ruta = cliente.descargar(resultado, temporal)
+                try:
+                    ruta = cliente.descargar(resultado, temporal)
+                except opensubtitles.LimiteAgotado:
+                    aviso = 'se agotaron las descargas de hoy en OpenSubtitles'
+                    break
                 candidato = Candidato(f'opensubtitles {resultado.file_id}', ruta, es_sdh(ruta))
                 candidato.verificacion = sincronizar.verificar(audio, ruta, temporal)
                 candidatos.append(candidato)
@@ -111,7 +116,7 @@ def conseguir_video(video : Path, idioma : str = 'en', consulta : str = '', clie
                         break
 
         if not sirven:
-            return ResultadoVideo(video, None, None, candidatos, 'ningun candidato corresponde al audio')
+            return ResultadoVideo(video, None, None, candidatos, aviso or 'ningun candidato corresponde al audio')
 
         elegido = min(sirven, key=_prioridad)
         fuente = elegido.verificacion.corregido if elegido.verificacion.estado == sincronizar.CORRIDO else elegido.ruta

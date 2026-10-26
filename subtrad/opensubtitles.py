@@ -21,6 +21,10 @@ class ErrorOpenSubtitles(Exception):
     """Fallo de la API (clave invalida, limite de descargas, red...)."""
 
 
+class LimiteAgotado(ErrorOpenSubtitles):
+    """Se agoto el limite diario de descargas."""
+
+
 @dataclass
 class Resultado:
     """Un subtitulo encontrado."""
@@ -54,6 +58,7 @@ class Cliente:
             raise ErrorOpenSubtitles('Falta OPENSUBTITLES_API_KEY (en el entorno o en .env)')
         self.token = ''
         self.restantes : int|None = None
+        self.agotado = False
 
     def _pedir(self, metodo : str, ruta : str, parametros : dict|None = None, cuerpo : dict|None = None) -> dict:
         url = f'{API}/{ruta}'
@@ -111,7 +116,16 @@ class Cliente:
 
     def descargar(self, resultado : Resultado, carpeta : Path) -> Path:
         """Descarga un subtitulo a la carpeta indicada (cuenta para el limite diario)."""
-        datos = self._pedir('POST', 'download', cuerpo={'file_id': resultado.file_id})
+        if self.agotado:
+            raise LimiteAgotado('Se agotaron las descargas de hoy en OpenSubtitles')
+        try:
+            datos = self._pedir('POST', 'download', cuerpo={'file_id': resultado.file_id})
+        except ErrorOpenSubtitles as error:
+            # 406: limite diario agotado; no tiene sentido seguir intentando con otros videos
+            if 'HTTP 406' in str(error):
+                self.agotado = True
+                raise LimiteAgotado(str(error)) from error
+            raise
         self.restantes = datos.get('remaining')
         pedido = urllib.request.Request(datos['link'], headers={'User-Agent': AGENTE})
         with urllib.request.urlopen(pedido, timeout=60) as respuesta:

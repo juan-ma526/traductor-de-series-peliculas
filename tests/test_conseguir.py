@@ -40,21 +40,26 @@ def _subtitulo(tmp_path : Path, inicios : list[int]) -> Path:
     return ruta
 
 
-@pytest.mark.parametrize('movimientos, esperado', [
-    ([100] * 20, sincronizar.ENCAJA),                              # ya estaba bien
-    ([3500] * 20, sincronizar.CORRIDO),                            # corrido parejo: se corrige
-    ([(-1) ** i * 20000 + i * 3000 for i in range(20)], sincronizar.NO_ENCAJA),   # otro contenido
+@pytest.mark.parametrize('unico, cortes, esperado', [
+    (100, [100] * 20, sincronizar.ENCAJA),                                 # ya estaba bien
+    (3500, [3500] * 20, sincronizar.CORRIDO),                              # corrido parejo: se corrige
+    # Error real (World Is Dancing E03): subtitulo correcto, pero alass inventa cortes en escenas de musica
+    (-90, [0] * 12 + [-36000] * 4 + [62000] * 4, sincronizar.ENCAJA),
+    # Error real (World Is Dancing E01): pista de otro anime, cada tramo se mueve distinto
+    (-18580, [(-1) ** i * 20000 + i * 3000 for i in range(20)], sincronizar.NO_ENCAJA),
 ])
-def test_verificar_clasifica_segun_lo_que_mueve_alass(tmp_path, monkeypatch, movimientos, esperado):
-    original = _subtitulo(tmp_path, [i * 5000 + 30000 for i in range(20)])
+def test_verificar_clasifica_segun_lo_que_mueve_alass(tmp_path, monkeypatch, unico, cortes, esperado):
+    original = _subtitulo(tmp_path, [i * 5000 + 70000 for i in range(20)])
 
-    # alass simulado: escribe la salida moviendo cada linea lo indicado
+    # alass simulado: con --no-split mueve todo igual; sin el, cada linea segun `cortes`
     def alass_falso(comando, **_kwargs):
-        subs = pysubs2.load(comando[2])
+        entrada, salida = comando[-2], comando[-1]
+        movimientos = [unico] * 20 if '--no-split' in comando else cortes
+        subs = pysubs2.load(entrada)
         for evento, movimiento in zip(subs.events, movimientos):
             evento.start += movimiento
             evento.end += movimiento
-        subs.save(comando[3])
+        subs.save(salida)
 
     monkeypatch.setattr(sincronizar, 'ruta_alass', lambda: 'alass')
     monkeypatch.setattr(sincronizar.subprocess, 'run', alass_falso)
