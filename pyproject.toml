@@ -1,0 +1,32 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "subtrad"
+version = "0.1.0"
+description = "Traduce subtitulos de series y peliculas con IA respetando el glosario de cada serie"
+readme = "README.md"
+license = "MIT"
+requires-python = ">=3.10"
+dependencies = [
+    "pysubs2>=1.7",
+    "regex>=2023.0",
+    "charset-normalizer>=3.0",
+    "pyyaml>=6.0",
+]
+
+[project.optional-dependencies]
+dev = ["pytest>=8.0"]
+
+[project.scripts]
+subtrad = "subtrad.cli:main"
+
+[tool.setuptools.packages.find]
+include = ["subtrad*"]
+
+[tool.setuptools.package-data]
+subtrad = ["plantillas/*.md"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

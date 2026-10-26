@@ -1,0 +1,161 @@
+# Perfil de ejemplo: Kingdom (anime, 2012).
+# No confundir con "Kingdom" (2019, serie coreana de Netflix) ni con las peliculas live action japonesas.
+
+serie: Kingdom
+año: 2012
+tipo: anime
+
+idioma_destino: Latin American Spanish
+codigo: es
+tratamiento: tuteo
+
+prompt: >
+  Translate to natural Latin American Spanish.
+  Keep character, military unit, city, and state names unchanged.
+
+# Nombres que el traductor nunca debe tocar
+nombres_fijos: [
+  Shin, Ei Sei, Karyo Ten, Kyou Kai, Ouki, Mou Gou, Mou Bu, Tou, Duke Hyou, Ousen, Kanki, Riboku,
+  Keisha, Karin, Kan Mei, Go Hou Mei, Ordo, Seikai, Shouheikun, Saitaku,
+  Qin, Wei, Zhao, Chu, Yan, Han, Qi, Kankoku
+]
+
+# Los subtitulos en ingles de algunas temporadas usan la lectura china de los nombres.
+# Se pasan a la lectura japonesa, que es la del anime.
+# El orden no importa: se aplican de mayor a menor largo.
+mapear:
+  # Personajes principales
+  Xin: Shin
+  Ying Zheng: Ei Sei
+  Zheng: Sei
+  He Liao Diao: Karyo Ten
+  Liao Diao: Karyo Ten
+  Diao: Ten
+  Piao: Hyou
+  Qiang Lei: Kyoukai
+  Qiang Xiang: Kyou Shou
+  Qiang: Kyou
+  Lü Buwei: Ryofui
+  Lu Buwei: Ryofui
+  Buwei: Ryofui
+  Cheng Jiao: Seikyou
+  Chengjiao: Seikyou
+  Wang Qi: Ouki
+  Wang Yi: Ouki
+  Wang Jian: Ousen
+  Wang Ben: Ouhon
+  Wang: Ou
+  Meng Ao: Mougou
+  Meng Wu: Moubu
+  Meng Tian: Mouten
+  Huan Yi: Kanki
+  Huan Ji: Kanki
+  Teng: Tou
+  Biao: Hyou
+  Bi: Heki
+  Wei Ping: Bihei
+  Wei Dao: Bitou
+  Li Si: Rishi
+  Cai Ze: Saitaku
+  Wu Fengming: Go Hou Mei
+  Fengming: Houmei
+
+  # Zhao y otros estados
+  Li Mu: Riboku
+  Pang Nuan: Houken
+  Lian Po: Renpa
+  Lun Hu: Rinko
+  Jiang Yan: Kyouen
+  Xuan Feng: Genpou
+  Jie Zifang: Kaishibou
+  Feng Ji: Fuuki
+  Zhao Zhuang: Choushou
+  Wan Ji: Mangoku
+  Bai Qi: Hakuki
+  Bai Guixi: Hakukisai
+  Wu Qing: Gokei
+  Kai Meng: Gaimou
+  Pu Ge: Hokaku
+  Qing She: Keisha
+  Ji Hui: Kisui
+  Liu Dong: Ryuutou
+  Lei Tu: Raido
+  Jin Mao: Kinmou
+  Yue Ying: Gakuei
+  Na Gui: Naki
+  Mo Lun: Maron
+  Hei Ying: Kokuou
+  Ze Nuo: Zenou
+  Yang Duanhe: Yotanwa
+  Duanhe: Yotanwa
+  Shun Shuishu: Shun Suiju
+  Zhao Elong: Chou Garyuu
+  Yao Yun: Gyou Un
+  Lin Xiangru: Rin Shoujo
+  Gongsun Long: Koson Ryuu
+  Sima Shang: Shiba Shou
+  Ya Guang: Akou
+
+  # Personajes de las primeras temporadas
+  Jie Shi: Ketsushi
+  Shi Shi: Shishi
+  Zuo Ci: Saji
+  Chi You: Shiyuu
+  Lan Kai: Rankai
+  Long Guo: Ryuukoku
+  Li Bai: Rihaku
+  Long Chuan: Ryuusen
+  Rong Bei: Eibi
+  Lao Ai: Rouai
+  Chunpingjun: Shunpeikun
+
+  # Unidades
+  Fei Xin: Hi Shin
+  Fei Shin: Hi Shin
+  Feixin: Hi Shin
+  Fei: Hi
+  Yu Feng: Gyoku Hou
+  Yufeng: Gyoku Hou
+  Yuehua: Gaku Ka
+  Chu Shui: Sosui
+
+  # Lugares
+  Xianyang: Kanyou
+  Xiangyang: Kanyou
+  Hangu: Kankoku
+  Handan: Kantan
+  Shanyang: Sanyou
+  Tunliu: Tonryuu
+  Zhuyong: Choyou
+  Taiyuan: Taigen
+  Heiyong: Kokuyou
+  Liewei: Retsubi
+  Laoyang: Ryouyou
+  Qingge: Seika
+  Quanrong: Kenjuu
+  Yanmen: Ganmon
+  Yè: Gyou
+
+# Nombres con titulo opcional delante ("Lord Changwen", "señor Changwen", "Changwenjun")
+mapear_regex:
+  '(?:[Ll]ord |[Ss]eñor )?Changwen(?:jun)?': Shoubunkun
+  '(?:[Ll]ord |[Ss]eñor )?Changping(?:jun)?': Shouheikun
+
+# Nombres que significan cosas distintas segun la temporada: nunca se reemplazan globalmente
+ambiguos:
+  Xiang:
+    '1': Shou        # Kyou Shou, la hermana de Kyoukai
+    '2-6': Kou       # Kou, la concubina de Ei Sei
+  Qing:
+    '5': Kei         # el estandarte de Keisha
+
+# Unidades cuyo nombre se conserva: "Hi Shin Force" / "Fuerza Hi Shin" -> "Unidad Hi Shin"
+unidades: [Hi Shin, Gyoku Hou, Gaku Ka, Gaku, Tenbu, Nanshou, Yuuto]
+
+# Reemplazos literales despues de todo lo anterior
+reemplazos:
+  duque Hyou: Duke Hyou
+  Duque Hyou: Duke Hyou
+  Thousand Man Unit: Unidad de Mil Hombres
+  Thousand-Man Unit: Unidad de Mil Hombres
+  Noko Squad: Escuadrón Noko
