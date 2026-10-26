@@ -22,10 +22,12 @@ Para cada parte NNN.txt, en orden:
 4. Reglas de traduccion:
    - Respetar a rajatabla las REGLAS DEL USUARIO. Si dicen que un tipo de nombre no se traduce, se deja exactamente igual al original.
    - Si un nombre de la lista incluye un titulo (ej. "Duke Hyou"), el titulo tampoco se traduce.
+     Los demas tratamientos SI se traducen: "Lord Yoshimitsu" -> "el señor Yoshimitsu", "Lady Nariko" -> "la señora Nariko".
    - Unidades militares: se conserva el nombre propio y se traduce la palabra generica ("Hi Shin Force" -> "Unidad Hi Shin", "Wang Jian's Army" -> "el ejercito de Wang Jian").
    - Traducir tambien los carteles y titulos que aparecen en pantalla.
    - Traduccion natural y hablada, no literal. Subtitulos breves y faciles de leer.
    - {TRATAMIENTO}
+   - Si el idioma es español latinoamericano, usar vocabulario latinoamericano y no de España: durazno (no melocotón), está bien / de acuerdo (no "vale"), auto (no coche), ustedes (nunca vosotros).
    - Mantener consistentes nombres y terminos en todas las partes.
    - Leer la parte siguiente si hace falta contexto para una frase cortada.
 

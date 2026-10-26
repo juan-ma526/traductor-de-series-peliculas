@@ -93,6 +93,14 @@ def test_detecta_etiquetas_voseo_y_nombres(escribir, perfil_kingdom):
     assert {'etiquetas', 'voseo', 'nombres'} <= encontrados
 
 
+def test_detecta_españolismos_pero_no_el_verbo_valer(escribir):
+    # Error real (World Is Dancing): "melocotón" y "Sí, vale, perdón." en español latino
+    escribir('ep.en.ass', [('Default', 'A white peach.'), ('Default', 'Yes, okay, sorry.'), ('Default', 'Anything goes.')])
+    es = escribir('ep.es.ass', [('Default', 'Un melocotón blanco.'), ('Default', 'Sí, vale, perdón.'), ('Default', 'Todo vale.')])
+    problemas = [p for p in revisar_archivo(es) if p.tipo == 'españolismos']
+    assert problemas and problemas[0].detalle.startswith('2 lineas')
+
+
 def test_sin_original_revisa_solo_el_texto(escribir):
     es = escribir('ep.es.ass', [('Default', 'Hola.')])
     assert tipos(revisar_archivo(es)) == {'sin_original'}

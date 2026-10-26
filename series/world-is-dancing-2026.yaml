@@ -1,0 +1,37 @@
+# World Is Dancing (anime ONA, 2026; AniList 206521).
+# Japon medieval, mundo del teatro Noh / sarugaku.
+
+serie: World Is Dancing
+año: 2026
+tipo: anime
+
+idioma_destino: Latin American Spanish
+codigo: es
+tratamiento: tuteo
+
+prompt: >
+  Translate to natural Latin American Spanish.
+  Keep character names and Noh theater terms unchanged.
+  Troupes keep their name and translate the generic word: "Kanze Troupe" -> "la compañía Kanze".
+  Translate the titles of plays naturally (e.g. "Komachi at the Gravepost" -> "Komachi en la tumba").
+  Write "shogun" without accent. Fuga is the shogun's dog.
+
+nombres_fijos: [
+  Oniyasha, Zojiro, Ishiya, Kogane, Inuo, Fujiwaka, Kan'ami, Zeami, Yoshimitsu, Toku,
+  Chiharu, Hijiri, Komachi, Goro, Kamekichi, Shinza, Inomaru, Fuga,
+  Kanze, Hiyoshi, Senzai, Okina, Sarugaku, Imakumano, Jinen Koji
+]
+
+# Tratamientos que el traductor dejo en ingles: "Lord Yoshimitsu" -> "señor Yoshimitsu" (con mayuscula al empezar la frase)
+mapear_regex:
+  '(?<=^|\\N|[.!?¡¿] )Lord(?= [A-Z])': Señor
+  'Lord(?= [A-Z])': señor
+  '(?<=^|\\N|[.!?¡¿] )Lady(?= [A-Z])': Señora
+  'Lady(?= [A-Z])': señora
+
+# Por si el traductor deja la palabra en ingles o pone tilde donde no va
+reemplazos:
+  Kanze Troupe: compañía Kanze
+  Hiyoshi Troupe: compañía Hiyoshi
+  shógun: shogun
+  Shógun: Shogun

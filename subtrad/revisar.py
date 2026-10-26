@@ -23,7 +23,9 @@ AVISO = 'aviso'
 INGLES = regex.compile(r"\b(the|you|and|what|this|that|is|are|we|it's|don't|I'm|of|to|your|have|will)\b", regex.IGNORECASE)
 ESPANOL = regex.compile(r'\b(el|la|los|las|que|de|y|es|no|un|una|por|con|se|lo|su|mi|tu|yo)\b', regex.IGNORECASE)
 VOSEO = regex.compile(r'\b(vos|sos|tenés|sabés|querés|podés|decí|mirá|escuchá|vení|andá|hacé|esperá|fijate|dejame|decime|permitime|creés)\b', regex.IGNORECASE)
-OTROS_ALFABETOS = regex.compile(r'[\p{Cyrillic}\p{Han}\p{Hiragana}\p{Katakana}\p{Hangul}\p{Arabic}]')
+# Vocabulario de España que no va en español latinoamericano ("vale" solo como interjeccion suelta)
+ESPAÑOLISMOS = regex.compile(r'\b(vosotr[oa]s|vuestr[oa]s?|habéis|tenéis|sabéis|queréis|podéis|melocot[oó]n(es)?|ordenador(es)?|zumo|gafas|chaval(es)?|gilipollas|guay)\b|(^|[.!?¡¿,] ?)[Vv]ale[.!?,]', regex.IGNORECASE)
+OTROS_ALFABETOS =regex.compile(r'[\p{Cyrillic}\p{Han}\p{Hiragana}\p{Katakana}\p{Hangul}\p{Arabic}]')
 TAGS = regex.compile(r'\{[^}]*\}')
 
 # Una linea es sospechosa de estar corrida si su largo difiere mucho del original
@@ -129,7 +131,7 @@ def revisar_sin_traducir(original : pysubs2.SSAFile, traducido : pysubs2.SSAFile
 def revisar_texto(traducido : pysubs2.SSAFile, perfil : Perfil|None, temporada : int|None) -> list[Problema]:
     """Controles que solo miran el texto traducido."""
     problemas = []
-    etiquetas, voseo, ingles, alfabetos = [], [], [], []
+    etiquetas, voseo, ingles, alfabetos, españolismos = [], [], [], [], []
     for i in eventos_traducibles(traducido):
         crudo = traducido.events[i].text
         texto = TAGS.sub('', crudo)
@@ -141,6 +143,8 @@ def revisar_texto(traducido : pysubs2.SSAFile, perfil : Perfil|None, temporada :
             ingles.append(i)
         if OTROS_ALFABETOS.search(texto):
             alfabetos.append(i)
+        if ESPAÑOLISMOS.search(texto):
+            españolismos.append(i)
 
     if etiquetas:
         problemas.append(Problema('etiquetas', GRAVE, f"{len(etiquetas)} lineas con etiquetas Original/Translation en pantalla", etiquetas[0]))
@@ -150,6 +154,9 @@ def revisar_texto(traducido : pysubs2.SSAFile, perfil : Perfil|None, temporada :
         problemas.append(Problema('ingles', GRAVE if len(ingles) >= 3 else AVISO, f"{len(ingles)} lineas parecen estar en ingles", ingles[0]))
     if alfabetos:
         problemas.append(Problema('alfabeto', AVISO, f"{len(alfabetos)} lineas con caracteres de otros alfabetos", alfabetos[0]))
+    latino = perfil is None or 'latin' in perfil.idioma_destino.lower()
+    if españolismos and latino:
+        problemas.append(Problema('españolismos', AVISO, f"{len(españolismos)} lineas con vocabulario de España (ej. {_texto(traducido.events[españolismos[0]])[:50]!r})", españolismos[0]))
 
     if perfil:
         restantes = []
