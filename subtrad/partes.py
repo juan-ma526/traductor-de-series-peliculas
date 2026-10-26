@@ -155,6 +155,31 @@ def leer_traducciones(trabajo : Path, partes : list[str]) -> tuple[dict[int, str
     return traducciones, errores
 
 
+CURSIVA = regex.compile(r'\{\\i[01]?\}')
+OTROS_ALFABETOS = regex.compile(r'[\p{Cyrillic}\p{Han}\p{Hiragana}\p{Katakana}\p{Hangul}\p{Arabic}]')
+
+
+def _toda_en_cursiva(texto : str) -> bool:
+    """Cada renglon (separado por \\N) esta envuelto en {\\i1}...{\\i} o {\\i0}, sin otros tags."""
+    renglones = texto.split('\\N')
+    return all(regex.fullmatch(r'\{\\i1\}[^{}]*\{\\i0?\}', r.strip()) for r in renglones)
+
+
+def reparar(subs : pysubs2.SSAFile, traducciones : dict[int, str]) -> dict[int, str]:
+    """Arreglos mecanicos antes de validar.
+    Lineas enteras en cursiva (un par de tags por renglon): los modelos suelen dejar un solo par para toda la linea.
+    Error frecuente en Kingdom y Escaflowne; se rearma igual que el original."""
+    reparadas = dict(traducciones)
+    for i, texto in traducciones.items():
+        original = subs.events[i].text
+        if i < len(subs.events) and _toda_en_cursiva(original) and not _toda_en_cursiva(texto):
+            cierre = '{\\i0}' if '{\\i0}' in original else '{\\i}'
+            limpio = CURSIVA.sub('', texto)
+            if not TAGS_ASS.search(limpio):
+                reparadas[i] = '\\N'.join(f'{{\\i1}}{r}{cierre}' for r in limpio.split('\\N'))
+    return reparadas
+
+
 def validar(subs : pysubs2.SSAFile, esperados : set[int], traducciones : dict[int, str]) -> list[str]:
     """Errores que impiden insertar: ids faltantes o de mas, tags alterados, etiquetas coladas, lineas pegadas."""
     errores = []
@@ -173,6 +198,9 @@ def validar(subs : pysubs2.SSAFile, esperados : set[int], traducciones : dict[in
             errores.append(f"[{i}] tiene etiquetas Original/Translation")
         if LINEA_TRADUCIDA.search(texto) or regex.search(r'\s\[\d+\]\s', texto):
             errores.append(f"[{i}] parece contener otra linea pegada")
+        # Error real (Escaflowne E18): el modelo metio caracteres chinos en medio de una frase
+        if OTROS_ALFABETOS.search(texto) and not OTROS_ALFABETOS.search(subs.events[i].text):
+            errores.append(f"[{i}] tiene caracteres de otro alfabeto")
     return errores
 
 
@@ -182,6 +210,7 @@ def insertar(archivo : Path, trabajo : Path, salida : Path) -> int:
     manifiesto = json.loads((trabajo / 'manifiesto.json').read_text(encoding='utf-8'))
     subs = cargar(archivo)
     traducciones, errores = leer_traducciones(trabajo, manifiesto['partes'])
+    traducciones = reparar(subs, traducciones)
     errores += validar(subs, set(manifiesto['eventos']), traducciones)
     if errores:
         raise ErrorInsercion(errores)

@@ -39,19 +39,20 @@ def servidor():
 
 
 def test_traduce_y_corrige_cuando_falla_la_validacion(escribir, tmp_path, servidor):
-    origen = escribir('ep.en.ass', [('Default', '{\\i1}Hello{\\i0}'), ('Default', 'Goodbye.')])
+    # Cursiva parcial: no se puede reparar sola, el modelo tiene que corregirla
+    origen = escribir('ep.en.ass', [('Default', '{\\i1}Hello{\\i0} friend'), ('Default', 'Goodbye.')])
     trabajo = tmp_path / 'trabajo'
     partes.preparar(origen, trabajo)
     ServidorFalso.respuestas = [
-        '```\n[0] Hola\n[1] Adiós.\n```',          # pierde el tag de cursiva
-        '[0] {\\i1}Hola{\\i0}\n[1] Adiós.',        # corregida
+        '```\n[0] Hola amigo\n[1] Adiós.\n```',          # pierde el tag de cursiva
+        '[0] {\\i1}Hola{\\i0} amigo\n[1] Adiós.',        # corregida
     ]
 
     motor = motor_api.MotorAPI('modelo-prueba', servidor, clave='')
     motor_api.traducir_capitulo(motor, trabajo, Perfil(serie='Prueba'))
     partes.insertar(origen, trabajo, tmp_path / 'ep.es.ass')
 
-    assert [e.text for e in cargar(tmp_path / 'ep.es.ass').events] == ['{\\i1}Hola{\\i0}', 'Adiós.']
+    assert [e.text for e in cargar(tmp_path / 'ep.es.ass').events] == ['{\\i1}Hola{\\i0} amigo', 'Adiós.']
     assert len(ServidorFalso.pedidos) == 2
     assert 'tags de estilo' in ServidorFalso.pedidos[1]['messages'][-1]['content']
     assert motor.uso.entrada == 20
@@ -97,11 +98,11 @@ def test_motor_anthropic_con_gateway(escribir, tmp_path):
     http = HTTPServer(('127.0.0.1', 0), AnthropicFalso)
     threading.Thread(target=http.serve_forever, daemon=True).start()
     try:
-        origen = escribir('ep.en.ass', [('Default', '{\\i1}Hello{\\i0}')])
+        origen = escribir('ep.en.ass', [('Default', '{\\i1}Hello{\\i0} friend')])
         trabajo = tmp_path / 'trabajo'
         partes.preparar(origen, trabajo)
         AnthropicFalso.pedidos = []
-        AnthropicFalso.respuestas = ['[0] Hola', '[0] {\\i1}Hola{\\i0}']
+        AnthropicFalso.respuestas = ['[0] Hola amigo', '[0] {\\i1}Hola{\\i0} amigo']
 
         motor = MotorAnthropic('claude-haiku-5-5', f'http://127.0.0.1:{http.server_port}', clave='prueba')
         motor_api.traducir_capitulo(motor, trabajo, Perfil(serie='Prueba'))
@@ -113,7 +114,7 @@ def test_motor_anthropic_con_gateway(escribir, tmp_path):
     assert 'temperature' not in primero                       # la API ya no la acepta
     assert 'SOLO con las lineas traducidas' in primero['system']
     assert [m['role'] for m in AnthropicFalso.pedidos[1]['messages']] == ['user', 'assistant', 'user']
-    assert (trabajo / '001.out.txt').read_text(encoding='utf-8').strip() == '[0] {\\i1}Hola{\\i0}'
+    assert (trabajo / '001.out.txt').read_text(encoding='utf-8').strip() == '[0] {\\i1}Hola{\\i0} amigo'
     assert motor.uso.entrada == 14
 
 

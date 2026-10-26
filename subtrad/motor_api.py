@@ -54,7 +54,7 @@ class MotorAPI:
         if self.clave:
             cabeceras['Authorization'] = f'Bearer {self.clave}'
 
-        for espera in (0, 5, 20, 60):
+        for espera in (0, 10, 20, 40, 60, 90, 120):
             time.sleep(espera)
             pedido = urllib.request.Request(f'{self.url}/chat/completions', data=cuerpo, headers=cabeceras, method='POST')
             try:
@@ -114,6 +114,7 @@ def traducir_capitulo(motor, trabajo : Path, perfil : Perfil) -> None:
         for intento in range(INTENTOS):
             respuesta = _limpiar_respuesta(motor.completar(mensajes))
             traducciones, errores = partes.leer_lineas(respuesta)
+            traducciones = partes.reparar(subs, {i: t for i, t in traducciones.items() if i < len(subs.events)})
             errores += partes.validar(subs, set(esperados), traducciones)
             if not errores:
                 break

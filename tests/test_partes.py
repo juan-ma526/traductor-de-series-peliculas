@@ -41,14 +41,36 @@ def test_no_extrae_canciones_ni_comentarios(escribir, tmp_path):
 
 
 def test_rechaza_tags_perdidos(escribir, tmp_path):
-    origen = escribir('ep.en.ass', [('Default', '{\\i1}Hello{\\i0}')])
+    # Cursiva parcial: no se puede rearmar sola
+    origen = escribir('ep.en.ass', [('Default', '{\\i1}Hello{\\i0} friend')])
     trabajo = tmp_path / 'trabajo'
     partes.preparar(origen, trabajo)
-    traducir(trabajo, {0: 'Hola'})
+    traducir(trabajo, {0: 'Hola amigo'})
 
     with pytest.raises(partes.ErrorInsercion):
         partes.insertar(origen, trabajo, tmp_path / 'ep.es.ass')
     assert not (tmp_path / 'ep.es.ass').exists()
+
+
+def test_repara_cursivas_por_renglon(escribir, tmp_path):
+    # Error frecuente (Kingdom, Escaflowne E23): linea toda en cursiva y el modelo deja un solo par de tags
+    origen = escribir('ep.en.ass', [('Default', "{\\i1}Folken's arrival{\\i}\\N{\\i1}changed everything.{\\i}")])
+    trabajo = tmp_path / 'trabajo'
+    partes.preparar(origen, trabajo)
+    traducir(trabajo, {0: '{\\i1}La llegada de Folken\\Nlo cambió todo.{\\i}'})
+
+    partes.insertar(origen, trabajo, tmp_path / 'ep.es.ass')
+    assert cargar(tmp_path / 'ep.es.ass').events[0].text == '{\\i1}La llegada de Folken{\\i}\\N{\\i1}lo cambió todo.{\\i}'
+
+
+def test_rechaza_caracteres_de_otro_alfabeto(escribir, tmp_path):
+    # Error real (Escaflowne E18): "con el que se顶层 mi padre"
+    origen = escribir('ep.en.ass', [('Default', 'That my father met?')])
+    trabajo = tmp_path / 'trabajo'
+    partes.preparar(origen, trabajo)
+    traducir(trabajo, {0: '¿Con el que se顶层 mi padre?'})
+    with pytest.raises(partes.ErrorInsercion):
+        partes.insertar(origen, trabajo, tmp_path / 'ep.es.ass')
 
 
 def test_rechaza_lineas_faltantes(escribir, tmp_path):
