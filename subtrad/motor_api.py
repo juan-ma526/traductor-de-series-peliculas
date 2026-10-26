@@ -1,0 +1,113 @@
+"""Motor de traduccion por API compatible con OpenAI (OpenAI, OpenRouter, DeepSeek, Ollama, etc.).
+
+Configuracion (entorno o .env):
+- SUBTRAD_API_URL: base de la API (por defecto https://api.openai.com/v1).
+  OpenRouter: https://openrouter.ai/api/v1 - Ollama local: http://localhost:11434/v1
+- SUBTRAD_API_KEY: clave del proveedor (si falta se usa OPENAI_API_KEY; Ollama no necesita).
+- SUBTRAD_MODELO: modelo a usar (ej. gpt-4o-mini, deepseek/deepseek-chat, qwen2.5:14b).
+
+Traduce parte por parte, con las mismas reglas que el agente.
+Cada respuesta se valida (ids, tags, etiquetas) y si falla se le devuelven los errores al modelo para que corrija.
+"""
+import json
+import time
+import urllib.error
+import urllib.request
+from dataclasses import dataclass
+from pathlib import Path
+
+from subtrad import config, partes
+from subtrad.archivos import cargar
+from subtrad.perfil import Perfil
+
+URL_POR_DEFECTO = 'https://api.openai.com/v1'
+INTENTOS = 3
+
+
+class ErrorAPI(Exception):
+    """La API fallo o la traduccion no paso la validacion despues de varios intentos."""
+
+
+@dataclass
+class Uso:
+    """Tokens consumidos, para informar al usuario."""
+    entrada : int = 0
+    salida : int = 0
+
+
+class MotorAPI:
+    """Cliente minimo de /chat/completions."""
+
+    def __init__(self, modelo : str|None = None, url : str|None = None, clave : str|None = None, temperatura : float = 0.2):
+        self.url = (url or config.valor('SUBTRAD_API_URL', URL_POR_DEFECTO)).rstrip('/')
+        self.clave = clave if clave is not None else (config.valor('SUBTRAD_API_KEY') or config.valor('OPENAI_API_KEY'))
+        self.modelo = modelo or config.valor('SUBTRAD_MODELO')
+        self.temperatura = temperatura
+        self.uso = Uso()
+        if not self.modelo:
+            raise ErrorAPI('Falta el modelo: --modelo o SUBTRAD_MODELO en .env')
+
+    def completar(self, mensajes : list[dict]) -> str:
+        """Una llamada a la API; reintenta ante errores temporales (429, 5xx)."""
+        cuerpo = json.dumps({'model': self.modelo, 'messages': mensajes, 'temperature': self.temperatura}).encode()
+        cabeceras = {'Content-Type': 'application/json'}
+        if self.clave:
+            cabeceras['Authorization'] = f'Bearer {self.clave}'
+
+        for espera in (0, 5, 20, 60):
+            time.sleep(espera)
+            pedido = urllib.request.Request(f'{self.url}/chat/completions', data=cuerpo, headers=cabeceras, method='POST')
+            try:
+                with urllib.request.urlopen(pedido, timeout=300) as respuesta:
+                    datos = json.loads(respuesta.read())
+                break
+            except urllib.error.HTTPError as error:
+                if error.code in (429, 500, 502, 503, 504):
+                    continue
+                raise ErrorAPI(f'HTTP {error.code}: {error.read()[:300].decode("utf-8", "replace")}') from error
+            except urllib.error.URLError as error:
+                raise ErrorAPI(f'Sin conexion con {self.url}: {error.reason}') from error
+        else:
+            raise ErrorAPI('La API sigue respondiendo con error temporal despues de varios reintentos')
+
+        uso = datos.get('usage') or {}
+        self.uso.entrada += uso.get('prompt_tokens', 0)
+        self.uso.salida += uso.get('completion_tokens', 0)
+        return datos['choices'][0]['message']['content'] or ''
+
+
+def _limpiar_respuesta(texto : str) -> str:
+    """Algunos modelos envuelven la respuesta en un bloque de codigo."""
+    lineas = [l for l in texto.strip().splitlines() if not l.strip().startswith('```')]
+    return '\n'.join(lineas)
+
+
+def traducir_capitulo(motor : MotorAPI, trabajo : Path, perfil : Perfil) -> None:
+    """Traduce todas las partes de una carpeta de trabajo (preparada con partes.preparar) y escribe los NNN.out.txt."""
+    manifiesto = json.loads((trabajo / 'manifiesto.json').read_text(encoding='utf-8'))
+    subs = cargar(Path(manifiesto['archivo']))
+    sistema = partes.prompt_api(perfil)
+
+    for nombre in manifiesto['partes']:
+        salida = trabajo / f'{nombre}.out.txt'
+        if salida.exists():
+            continue
+
+        original = (trabajo / f'{nombre}.txt').read_text(encoding='utf-8')
+        esperados, _ = partes.leer_lineas(original)
+        mensajes = [{'role': 'system', 'content': sistema}, {'role': 'user', 'content': original}]
+
+        for intento in range(INTENTOS):
+            respuesta = _limpiar_respuesta(motor.completar(mensajes))
+            traducciones, errores = partes.leer_lineas(respuesta)
+            errores += partes.validar(subs, set(esperados), traducciones)
+            if not errores:
+                break
+            # Se le devuelven los errores al modelo para que corrija sobre su propia respuesta
+            mensajes += [{'role': 'assistant', 'content': respuesta},
+                         {'role': 'user', 'content': 'Corregi estos errores y responde de nuevo TODAS las lineas:\n' + '\n'.join(errores[:20])}]
+        else:
+            raise ErrorAPI(f'{trabajo.name}/{nombre}: la traduccion no paso la validacion: {errores[:5]}')
+
+        texto = '\n'.join(f'[{i}] {traducciones[i]}' for i in esperados)
+        salida.write_text(texto + '\n', encoding='utf-8')

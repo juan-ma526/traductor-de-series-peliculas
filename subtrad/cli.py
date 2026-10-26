@@ -4,7 +4,8 @@
   extraer      saca los subtitulos de los videos de una carpeta
   pendientes   lista originales y si ya tienen traduccion
   nombres      nombres propios de los originales que el perfil no cubre
-  preparar     divide subtitulos en partes para el traductor
+  traducir     traduce por API (OpenAI, OpenRouter, Ollama...) de punta a punta
+  preparar     divide subtitulos en partes para el traductor (agentes)
   insertar     reinserta la traduccion validandola
   limpiar      borra las carpetas de trabajo terminadas
   postproceso  aplica el perfil de la serie (nombres, unidades)
@@ -15,9 +16,10 @@ import collections
 import json
 import shutil
 import sys
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
 
-from subtrad import archivos, conseguir, nombres, opensubtitles, partes, postproceso, revisar, sincronizar, video
+from subtrad import archivos, conseguir, motor_api, nombres, opensubtitles, partes, postproceso, revisar, sincronizar, video
 from subtrad.perfil import Perfil, cargar_perfil
 
 CARPETA_TRABAJO = '.traduccion'
@@ -158,6 +160,54 @@ def cmd_nombres(args : argparse.Namespace) -> int:
     return 0
 
 
+def cmd_traducir(args : argparse.Namespace) -> int:
+    """Flujo completo por API: preparar, traducir, insertar, limpiar, postproceso y revisar."""
+    objetivo = Path(args.objetivo)
+    perfil = cargar_perfil(Path(args.perfil))
+    try:
+        motor = motor_api.MotorAPI(args.modelo, args.url)
+    except motor_api.ErrorAPI as error:
+        print(f"ERROR: {error}")
+        return 2
+
+    carpeta = objetivo if objetivo.is_dir() else objetivo.parent
+    base = carpeta / CARPETA_TRABAJO
+    if objetivo.is_dir():
+        capitulos = [p for p in archivos.pendientes(objetivo, perfil.codigo) if args.rehacer or not p.ya_traducido]
+    else:
+        capitulos = [archivos.Pendiente(objetivo, archivos.ruta_salida(objetivo, perfil.codigo))]
+    if not capitulos:
+        print("No hay capitulos pendientes")
+        return 0
+
+    def traducir_uno(pendiente : archivos.Pendiente) -> str:
+        trabajo = base / pendiente.origen.stem
+        if not (trabajo / 'manifiesto.json').exists():
+            partes.preparar(pendiente.origen, trabajo, args.lineas)
+        partes.escribir_instrucciones(trabajo, pendiente.origen, pendiente.salida, perfil)
+        motor_api.traducir_capitulo(motor, trabajo, perfil)
+        n = partes.insertar(pendiente.origen, trabajo, pendiente.salida)
+        return f"OK      {pendiente.salida.name} ({n} lineas)"
+
+    print(f"Traduciendo {len(capitulos)} capitulos con {motor.modelo} ({motor.url}), {args.paralelo} a la vez")
+    fallidos = 0
+    with ThreadPoolExecutor(max_workers=args.paralelo) as grupo:
+        futuros = {grupo.submit(traducir_uno, p): p for p in capitulos}
+        for futuro in as_completed(futuros):
+            try:
+                print(futuro.result())
+            except (motor_api.ErrorAPI, partes.ErrorInsercion) as error:
+                fallidos += 1
+                print(f"ERROR   {futuros[futuro].origen.name}: {str(error)[:300]}")
+
+    print(f"Tokens usados: {motor.uso.entrada} de entrada, {motor.uso.salida} de salida")
+    cmd_limpiar(argparse.Namespace(carpeta=str(carpeta)))
+    cmd_postproceso(argparse.Namespace(objetivo=str(objetivo if objetivo.is_dir() else capitulos[0].salida), perfil=args.perfil, temporada=None))
+    graves = cmd_revisar(argparse.Namespace(objetivo=str(objetivo if objetivo.is_dir() else capitulos[0].salida),
+                                            perfil=args.perfil, origen='en', destino=perfil.codigo))
+    return 1 if fallidos or graves else 0
+
+
 def cmd_insertar(args : argparse.Namespace) -> int:
     try:
         n = partes.insertar(Path(args.archivo), Path(args.trabajo), Path(args.salida))
@@ -241,6 +291,16 @@ def construir_parser() -> argparse.ArgumentParser:
     p.add_argument('--destino', default='es')
     p.add_argument('--minimo', type=int, default=4, help='apariciones minimas')
     p.set_defaults(funcion=cmd_nombres)
+
+    p = comandos.add_parser('traducir', help='traduce por API (compatible con OpenAI) de punta a punta')
+    p.add_argument('objetivo', help='carpeta con los originales o un subtitulo original')
+    p.add_argument('--perfil', required=True)
+    p.add_argument('--modelo', help='por defecto SUBTRAD_MODELO del .env')
+    p.add_argument('--url', help='base de la API, por defecto SUBTRAD_API_URL o la de OpenAI')
+    p.add_argument('--paralelo', type=int, default=3, help='capitulos a la vez')
+    p.add_argument('--lineas', type=int, default=partes.LINEAS_POR_PARTE)
+    p.add_argument('--rehacer', action='store_true', help='incluir capitulos que ya tienen traduccion')
+    p.set_defaults(funcion=cmd_traducir)
 
     p = comandos.add_parser('insertar', help='reinserta la traduccion validandola')
     p.add_argument('archivo')

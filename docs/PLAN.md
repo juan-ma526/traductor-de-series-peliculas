@@ -178,8 +178,8 @@ Todo esto aparecio revisando las temporadas 1 a 6 de Kingdom y tiene que quedar 
 3. [x] Convertir los glosarios de Kingdom a `series/kingdom-2012.yaml` y hacer `postproceso.py` generico.
 4. [x] Pasar los controles de calidad (seccion 7) a `subtrad revisar` con tests unitarios usando subtitulos de ejemplo inventados.
 5. [x] Adaptador Claude Code: skills que llaman a la CLI (sin rutas fijas `D:\...`).
-6. [ ] Adaptador OpenCode: comandos y agentes equivalentes.
-7. [ ] Motor por API compatible con OpenAI (API key en `.env`).
+6. [x] Adaptador OpenCode: comandos y subagente traductor (el flujo se describe una sola vez, en el SKILL.md).
+7. [x] Motor por API compatible con OpenAI (`subtrad traducir`), con validacion y correccion por parte.
 8. [ ] `identificar.py` con TMDB/AniList y pregunta al usuario si hay dudas.
 9. [~] `conseguir.py` + `sincronizar.py`: hecho con OpenSubtitles + alass (verifica pistas, archivos y descargas contra el audio). Falta: Subdl/Animetosho como fuentes extra.
 10. [ ] Documentar en el README: instalacion, flujo completo y como crear el perfil de una serie nueva.

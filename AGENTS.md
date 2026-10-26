@@ -12,6 +12,9 @@ El plan y las decisiones estan en `docs/PLAN.md`.
 - `subtrad/plantillas/traductor.md` prompt del agente traductor.
 - `series/*.yaml` perfiles de serie (glosario, reglas). `kingdom-2012.yaml` es el ejemplo completo.
 - `.claude/skills/` skills de Claude Code (`/traducir-serie`, `/extraer-subtitulos`).
+- `.opencode/commands/` y `.opencode/agents/` lo mismo para OpenCode (el flujo se describe una sola vez, en el SKILL.md).
+- `subtrad/motor_api.py` motor por API compatible con OpenAI (`subtrad traducir`), sin agentes.
+- `subtrad/plantillas/reglas.md` reglas de traduccion comunes a todos los motores.
 - `tests/` tests con subtitulos inventados que se generan en cada test.
 
 ## Comandos

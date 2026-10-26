@@ -79,24 +79,37 @@ def preparar(archivo : Path, trabajo : Path, lineas_por_parte : int = LINEAS_POR
     return manifiesto
 
 
-def escribir_instrucciones(trabajo : Path, origen : Path, salida : Path, perfil : Perfil) -> Path:
-    """Escribe INSTRUCCIONES.txt para el agente traductor a partir de la plantilla y el perfil."""
-    manifiesto = json.loads((trabajo / 'manifiesto.json').read_text(encoding='utf-8'))
-    plantilla = resources.files('subtrad').joinpath('plantillas/traductor.md').read_text(encoding='utf-8')
+def _plantilla(nombre : str) -> str:
+    return resources.files('subtrad').joinpath(f'plantillas/{nombre}').read_text(encoding='utf-8')
 
+
+def reglas(perfil : Perfil) -> str:
+    """Reglas de traduccion comunes a todos los motores (agente o API), completadas con el perfil."""
     nombres = ', '.join(perfil.nombres_fijos) if perfil.nombres_fijos else '(ninguna lista adicional)'
     tratamiento = {
         'tuteo': 'Usar SIEMPRE tuteo (tu, tienes, sabes, dime, eres). NUNCA voseo (vos, tenes, sabes con tilde, deci, sos). Usted solo para superiores o nobles.',
         'voseo': 'Usar voseo rioplatense (vos, tenes, sabes).',
         'usted': 'Usar usted en el trato formal.',
     }.get(perfil.tratamiento, '')
+    return (_plantilla('reglas.md')
+            .replace('{REGLAS_USUARIO}', perfil.prompt or f"Translate to natural {perfil.idioma_destino}.")
+            .replace('{NOMBRES}', nombres)
+            .replace('{TRATAMIENTO}', tratamiento))
+
+
+def prompt_api(perfil : Perfil) -> str:
+    """Mensaje de sistema para traducir por API, parte por parte."""
+    return _plantilla('api.md').replace('{IDIOMA}', perfil.idioma_destino).replace('{REGLAS}', reglas(perfil))
+
+
+def escribir_instrucciones(trabajo : Path, origen : Path, salida : Path, perfil : Perfil) -> Path:
+    """Escribe INSTRUCCIONES.txt para el agente traductor a partir de la plantilla y el perfil."""
+    manifiesto = json.loads((trabajo / 'manifiesto.json').read_text(encoding='utf-8'))
     comando = f'"{sys.executable}" -m subtrad insertar "{origen.as_posix()}" "{trabajo.as_posix()}" "{salida.as_posix()}"'
 
-    texto = (plantilla
+    texto = (_plantilla('traductor.md')
              .replace('{IDIOMA}', perfil.idioma_destino)
-             .replace('{REGLAS_USUARIO}', perfil.prompt or f"Translate to natural {perfil.idioma_destino}.")
-             .replace('{NOMBRES}', nombres)
-             .replace('{TRATAMIENTO}', tratamiento)
+             .replace('{REGLAS}', reglas(perfil))
              .replace('{TRABAJO}', trabajo.as_posix())
              .replace('{PARTES}', ', '.join(f"{p}.txt" for p in manifiesto['partes']))
              .replace('{COMANDO_INSERTAR}', comando))
@@ -110,6 +123,21 @@ def escribir_instrucciones(trabajo : Path, origen : Path, salida : Path, perfil 
     return ruta
 
 
+def leer_lineas(texto : str, nombre : str = '') -> tuple[dict[int, str], list[str]]:
+    """Lineas "[id] texto" -> {id: texto}, mas los errores de formato encontrados."""
+    traducciones : dict[int, str] = {}
+    errores : list[str] = []
+    for linea in texto.splitlines():
+        if not linea.strip():
+            continue
+        coincidencia = LINEA_TRADUCIDA.match(linea.strip())
+        if not coincidencia:
+            errores.append(f"{nombre}: linea sin [id]: {linea[:60]}".lstrip(': '))
+            continue
+        traducciones[int(coincidencia.group(1))] = coincidencia.group(2)
+    return traducciones, errores
+
+
 def leer_traducciones(trabajo : Path, partes : list[str]) -> tuple[dict[int, str], list[str]]:
     """Lee los NNN.out.txt; devuelve {id: texto} y los errores de formato encontrados."""
     traducciones : dict[int, str] = {}
@@ -119,25 +147,15 @@ def leer_traducciones(trabajo : Path, partes : list[str]) -> tuple[dict[int, str
         if not ruta.exists():
             errores.append(f"falta {ruta.name}")
             continue
-        for linea in ruta.read_text(encoding='utf-8-sig').splitlines():
-            if not linea.strip():
-                continue
-            coincidencia = LINEA_TRADUCIDA.match(linea.strip())
-            if not coincidencia:
-                errores.append(f"{ruta.name}: linea sin [id]: {linea[:60]}")
-                continue
-            traducciones[int(coincidencia.group(1))] = coincidencia.group(2)
+        leidas, errores_parte = leer_lineas(ruta.read_text(encoding='utf-8-sig'), ruta.name)
+        traducciones.update(leidas)
+        errores += errores_parte
     return traducciones, errores
 
 
-def insertar(archivo : Path, trabajo : Path, salida : Path) -> int:
-    """Reinserta las partes traducidas y guarda el subtitulo en `salida`.
-    Valida ids, tags de estilo y restos de formato; si algo falla no escribe nada y lanza ErrorInsercion."""
-    manifiesto = json.loads((trabajo / 'manifiesto.json').read_text(encoding='utf-8'))
-    subs = cargar(archivo)
-    traducciones, errores = leer_traducciones(trabajo, manifiesto['partes'])
-
-    esperados = set(manifiesto['eventos'])
+def validar(subs : pysubs2.SSAFile, esperados : set[int], traducciones : dict[int, str]) -> list[str]:
+    """Errores que impiden insertar: ids faltantes o de mas, tags alterados, etiquetas coladas, lineas pegadas."""
+    errores = []
     faltantes = sorted(esperados - traducciones.keys())
     sobrantes = sorted(traducciones.keys() - esperados)
     if faltantes:
@@ -153,7 +171,16 @@ def insertar(archivo : Path, trabajo : Path, salida : Path) -> int:
             errores.append(f"[{i}] tiene etiquetas Original/Translation")
         if LINEA_TRADUCIDA.search(texto) or regex.search(r'\s\[\d+\]\s', texto):
             errores.append(f"[{i}] parece contener otra linea pegada")
+    return errores
 
+
+def insertar(archivo : Path, trabajo : Path, salida : Path) -> int:
+    """Reinserta las partes traducidas y guarda el subtitulo en `salida`.
+    Valida ids, tags de estilo y restos de formato; si algo falla no escribe nada y lanza ErrorInsercion."""
+    manifiesto = json.loads((trabajo / 'manifiesto.json').read_text(encoding='utf-8'))
+    subs = cargar(archivo)
+    traducciones, errores = leer_traducciones(trabajo, manifiesto['partes'])
+    errores += validar(subs, set(manifiesto['eventos']), traducciones)
     if errores:
         raise ErrorInsercion(errores)
 

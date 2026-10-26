@@ -48,6 +48,29 @@ No hace falta API key: usa la suscripcion de Claude.
 
 Para solo sacar los subtitulos de los videos: `/extraer-subtitulos "<carpeta>"`.
 
+## Uso con OpenCode
+
+Abrir OpenCode en la carpeta del repo: los comandos estan en `.opencode/commands/` y el subagente traductor en `.opencode/agents/`.
+
+```
+/traducir-serie "<carpeta>"
+/extraer-subtitulos "<carpeta>"
+```
+
+El flujo es el mismo que en Claude Code; cada capitulo lo traduce el subagente `@traductor-subtitulos`.
+Para usar un modelo barato en la traduccion, agregar `model: <proveedor>/<modelo>` en `.opencode/agents/traductor-subtitulos.md`.
+
+## Uso por API (sin agentes)
+
+Con cualquier API compatible con OpenAI (OpenAI, OpenRouter, DeepSeek, Ollama local...), configurada en `.env`:
+
+```bash
+subtrad traducir "<carpeta>" --perfil series/<serie>.yaml [--modelo gpt-4o-mini] [--paralelo 3]
+```
+
+Prepara, traduce parte por parte (validando cada respuesta y pidiendole al modelo que corrija si algo falla), inserta, aplica el perfil y revisa.
+Al final informa los tokens usados.
+
 ## Uso (comandos sueltos)
 
 ```bash
