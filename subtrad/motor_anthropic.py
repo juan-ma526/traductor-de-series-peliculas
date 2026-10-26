@@ -4,7 +4,7 @@ Configuracion (entorno o .env), con SUBTRAD_API_FORMATO=anthropic:
 - SUBTRAD_API_KEY: clave (si falta se usa ANTHROPIC_API_KEY).
 - SUBTRAD_API_URL: base de la API solo si no es la oficial (ej. un gateway compatible con el formato de Anthropic).
 - SUBTRAD_MODELO: por defecto claude-haiku-5-5, el mas barato y suficiente para traducir.
-- SUBTRAD_ESFUERZO: low / medium / high (por defecto low).
+- SUBTRAD_ESFUERZO: low / medium / high (por defecto medium).
 
 Tiene la misma interfaz que motor_api.MotorAPI (completar, uso, modelo, url), asi traducir_capitulo sirve para los dos.
 La API ya no acepta temperature, asi que no se envia; la profundidad se controla con el esfuerzo.
@@ -27,7 +27,7 @@ class MotorAnthropic:
             raise ErrorAPI('Falta la clave: SUBTRAD_API_KEY (o ANTHROPIC_API_KEY) en .env')
         self.url = url or config.valor('SUBTRAD_API_URL') or 'https://api.anthropic.com'
         self.modelo = modelo or config.valor('SUBTRAD_MODELO') or MODELO_POR_DEFECTO
-        self.esfuerzo = esfuerzo or config.valor('SUBTRAD_ESFUERZO', 'low')
+        self.esfuerzo = esfuerzo or config.valor('SUBTRAD_ESFUERZO', 'medium')
         self.uso = Uso()
         # El SDK ya reintenta 429, 5xx y errores de conexion con espera exponencial
         self.cliente = anthropic.Anthropic(api_key=clave, base_url=self.url, max_retries=4)
