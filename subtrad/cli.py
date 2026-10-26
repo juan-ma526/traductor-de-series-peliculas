@@ -1,5 +1,6 @@
 """Linea de comandos: subtrad <comando> ...
 
+  conseguir    consigue el original de cada video (pistas o descarga) verificado contra el audio
   extraer      saca los subtitulos de los videos de una carpeta
   pendientes   lista originales y si ya tienen traduccion
   nombres      nombres propios de los originales que el perfil no cubre
@@ -16,7 +17,7 @@ import shutil
 import sys
 from pathlib import Path
 
-from subtrad import archivos, nombres, partes, postproceso, revisar, video
+from subtrad import archivos, conseguir, nombres, opensubtitles, partes, postproceso, revisar, sincronizar, video
 from subtrad.perfil import Perfil, cargar_perfil
 
 CARPETA_TRABAJO = '.traduccion'
@@ -55,6 +56,43 @@ def cmd_extraer(args : argparse.Namespace) -> int:
 
     print(f"Resumen: {dict(estados)}")
     return 1 if estados['error'] or estados['sin_pista'] or estados['no_extraible'] else 0
+
+
+def cmd_conseguir(args : argparse.Namespace) -> int:
+    carpeta = Path(args.carpeta)
+    consulta = args.serie or carpeta.name
+    cliente = None
+    if not args.sin_descargas:
+        try:
+            cliente = opensubtitles.Cliente()
+            if cliente.iniciar_sesion():
+                print("OpenSubtitles: sesion iniciada")
+        except opensubtitles.ErrorOpenSubtitles as error:
+            print(f"Aviso: sin descargas ({error})")
+
+    fallidos = 0
+    for v in video.videos(carpeta):
+        try:
+            resultado = conseguir.conseguir_video(v, args.idioma, consulta, cliente, args.max_descargas)
+        except opensubtitles.ErrorOpenSubtitles as error:
+            print(f"ERROR     {v.name}: {error}")
+            fallidos += 1
+            continue
+
+        for c in resultado.candidatos:
+            ver = c.verificacion
+            marca = '*' if c is resultado.elegido else ' '
+            if ver:
+                print(f"   {marca} {c.origen}{' (SDH)' if c.sdh else ''}: {ver.estado}, mueve {ver.corrimiento_ms / 1000:+.1f}s, quietas {ver.quietas:.0%}")
+        if resultado.salida:
+            print(f"OK        {resultado.salida.name}  <- {resultado.elegido.origen}")
+        else:
+            print(f"SIN SUBS  {v.name}: {resultado.detalle}")
+            fallidos += 1
+
+    if cliente is not None and cliente.restantes is not None:
+        print(f"OpenSubtitles: quedan {cliente.restantes} descargas hoy")
+    return 1 if fallidos else 0
 
 
 def cmd_pendientes(args : argparse.Namespace) -> int:
@@ -171,6 +209,14 @@ def construir_parser() -> argparse.ArgumentParser:
     p.add_argument('--listar', action='store_true', help='solo mostrar las pistas de cada video')
     p.set_defaults(funcion=cmd_extraer)
 
+    p = comandos.add_parser('conseguir', help='consigue el original de cada video y verifica que corresponda al audio')
+    p.add_argument('carpeta')
+    p.add_argument('--idioma', default='en')
+    p.add_argument('--serie', help='nombre para buscar en OpenSubtitles (por defecto, el de la carpeta)')
+    p.add_argument('--max-descargas', type=int, default=2, help='descargas maximas por video')
+    p.add_argument('--sin-descargas', action='store_true', help='solo verificar lo que ya hay')
+    p.set_defaults(funcion=cmd_conseguir)
+
     p = comandos.add_parser('pendientes', help='lista originales y si ya tienen traduccion')
     p.add_argument('carpeta')
     p.add_argument('--destino', default='es')
@@ -221,7 +267,7 @@ def main(argv : list[str]|None = None) -> int:
     args = construir_parser().parse_args(argv)
     try:
         return args.funcion(args)
-    except video.FfmpegNoEncontrado as error:
+    except (video.FfmpegNoEncontrado, sincronizar.AlassNoEncontrado) as error:
         print(f"ERROR: {error}")
         return 2
 

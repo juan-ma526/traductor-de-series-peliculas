@@ -35,10 +35,12 @@ Si no existe perfil para la serie, crear `<repo>/series/<serie>-<año>.yaml` (fo
 - Si los nombres vienen en una lectura distinta a la que conoce el usuario (ej. chino vs. japonés en anime), preguntar cuál quiere y armar `mapear`.
 
 ### 3. Conseguir el original en inglés
-- `subtrad pendientes <carpeta>`.
-- Si hay videos sin subtítulo original al lado: `subtrad extraer <carpeta>` (saca la pista embebida).
-- Si alguno sigue sin original (sin pista o pista de imagen), avisar al usuario.
-  La descarga automática de internet todavía no está implementada (paso 9 del plan).
+- `subtrad conseguir <carpeta> --serie "<titulo para buscar>"`.
+  Junta candidatos (archivo al lado, pistas del video y, si ninguno sirve, descargas de OpenSubtitles) y verifica cada uno contra el audio con alass.
+  Deja al lado de cada video el que corresponde (`<video>.en.<ext>`); si estaba corrido parejo, ya corregido; si es SDH, sin acotaciones.
+- NUNCA confiar en una pista solo porque viene en el video: puede ser de otro contenido (pasó en World Is Dancing).
+- Si un capítulo queda `SIN SUBS`, avisar al usuario (puede faltar en OpenSubtitles o haberse agotado el límite diario de descargas).
+- Si falta alass o la API key, el comando lo dice: explicarle al usuario cómo configurarlo (README, sección Configuración).
 
 ### 4. Revisar lo que ya está traducido
 Los capítulos que ya tienen traducción NO se saltean a ciegas (pueden venir de otro lado y estar mal):

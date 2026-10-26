@@ -168,6 +168,8 @@ Todo esto aparecio revisando las temporadas 1 a 6 de Kingdom y tiene que quedar 
 - [ ] **OP/ED**: no traducir karaoke ni estilos de canciones salvo que se pida.
 - [ ] **Caracteres raros** (cirilico u otros alfabetos que se cuelan).
 - [ ] **Backup** antes de cada postproceso y reporte final por capitulo.
+- [x] **Pista equivocada**: una pista que viene dentro del video puede ser de OTRO contenido (World Is Dancing: 6 de 9 capitulos con subs traian pistas de otro anime). Toda pista, archivo o descarga se verifica contra el audio con alass: si el corrimiento no es parejo, se descarta.
+- [x] **Sincronizacion por audio**: ffsubsync fallo con este anime (musica de fondo); alass funciono. Para alass se extrae el audio a WAV (con ffprobe nuevo no puede leer algunos mkv).
 
 ## 8. Pasos para armar el repo nuevo
 
@@ -179,7 +181,7 @@ Todo esto aparecio revisando las temporadas 1 a 6 de Kingdom y tiene que quedar 
 6. [ ] Adaptador OpenCode: comandos y agentes equivalentes.
 7. [ ] Motor por API compatible con OpenAI (API key en `.env`).
 8. [ ] `identificar.py` con TMDB/AniList y pregunta al usuario si hay dudas.
-9. [ ] `conseguir.py` + `sincronizar.py` (OpenSubtitles/Subdl/Animetosho + ffsubsync).
+9. [~] `conseguir.py` + `sincronizar.py`: hecho con OpenSubtitles + alass (verifica pistas, archivos y descargas contra el audio). Falta: Subdl/Animetosho como fuentes extra.
 10. [ ] Documentar en el README: instalacion, flujo completo y como crear el perfil de una serie nueva.
 11. [ ] Borrar el clon de `llm-subtrans` cuando todo funcione en el repo nuevo.
 

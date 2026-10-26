@@ -26,6 +26,15 @@ python -m venv .venv
 .venv/bin/python -m pip install -e ".[dev]"         # Linux/Mac
 ```
 
+## Configuracion
+
+Copiar `.env.example` a `.env` (no se sube al repo) y completar:
+
+- `OPENSUBTITLES_API_KEY`: para descargar subtitulos cuando los videos no los traen o vienen mal.
+  Se saca gratis en opensubtitles.com -> perfil -> API Consumers.
+- `OPENSUBTITLES_USERNAME` / `OPENSUBTITLES_PASSWORD` (opcional): sube el limite de 5 a 20 descargas por dia.
+- `ALASS_PATH`: ruta a `alass-cli` ([github.com/kaegi/alass](https://github.com/kaegi/alass/releases)), que verifica y corrige la sincronia contra el audio.
+
 ## Uso con Claude Code (recomendado)
 
 Abrir Claude Code en la carpeta del repo y pedir:
@@ -42,7 +51,8 @@ Para solo sacar los subtitulos de los videos: `/extraer-subtitulos "<carpeta>"`.
 ## Uso (comandos sueltos)
 
 ```bash
-subtrad extraer "<carpeta>"                       # saca los subs en ingles de los videos (.en.ass)
+subtrad conseguir "<carpeta>" --serie "<titulo>"   # el ingles de cada video: pistas o descarga, verificado contra el audio
+subtrad extraer "<carpeta>"                       # saca los subs en ingles de los videos (.en.ass), sin verificar
 subtrad pendientes "<carpeta>"                    # que falta traducir y que ya esta traducido
 subtrad nombres "<carpeta>" --perfil <perfil>     # nombres propios que el perfil todavia no cubre
 subtrad preparar "<carpeta>" --perfil series/kingdom-2012.yaml
