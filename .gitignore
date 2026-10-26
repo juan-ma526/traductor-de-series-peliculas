@@ -1,0 +1,35 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+build/
+dist/
+
+# Secretos y configuracion personal (rutas de la biblioteca, API keys)
+.env
+config.local.yaml
+
+# Subtitulos y videos: nunca se suben (derechos de autor)
+*.ass
+*.ssa
+*.srt
+*.vtt
+*.sub
+*.mkv
+*.mp4
+*.avi
+
+# Excepcion: subtitulos de ejemplo inventados para los tests
+!tests/datos/**
+
+# Archivos de trabajo temporales
+.traduccion/
+*.bak
+
+# Editores / sistema
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
