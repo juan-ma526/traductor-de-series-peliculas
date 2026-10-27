@@ -117,10 +117,17 @@ def buscar_tvmaze(titulo : str) -> list[Candidato]:
 
 
 def buscar_tmdb(titulo : str) -> list[Candidato]:
-    clave = config.valor('TMDB_API_KEY')
-    if not clave:
+    """TMDB acepta el token de lectura (Bearer, el metodo recomendado) o la clave v3 como parametro."""
+    token, clave = config.valor('TMDB_API_READ_ACCESS_TOKEN'), config.valor('TMDB_API_KEY')
+    parametros = {'query': titulo}
+    cabeceras = {}
+    if token:
+        cabeceras['Authorization'] = f'Bearer {token}'
+    elif clave:
+        parametros['api_key'] = clave
+    else:
         return []
-    datos = _pedir('https://api.themoviedb.org/3/search/multi?' + urllib.parse.urlencode({'query': titulo, 'api_key': clave}))
+    datos = _pedir('https://api.themoviedb.org/3/search/multi?' + urllib.parse.urlencode(parametros), cabeceras=cabeceras)
     candidatos = []
     for r in datos.get('results', []):
         if r.get('media_type') not in ('tv', 'movie'):

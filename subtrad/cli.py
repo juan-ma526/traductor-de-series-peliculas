@@ -363,6 +363,10 @@ def construir_parser() -> argparse.ArgumentParser:
 
 
 def main(argv : list[str]|None = None) -> int:
+    # La consola de Windows no puede mostrar algunos caracteres (titulos en japones): se reemplazan en vez de fallar
+    for flujo in (sys.stdout, sys.stderr):
+        if hasattr(flujo, 'reconfigure'):
+            flujo.reconfigure(errors='replace')
     args = construir_parser().parse_args(argv)
     try:
         return args.funcion(args)
