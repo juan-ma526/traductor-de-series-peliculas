@@ -71,3 +71,19 @@ def test_verificar_clasifica_segun_lo_que_mueve_alass(tmp_path, monkeypatch, uni
     monkeypatch.setattr(sincronizar.subprocess, 'run', alass_falso)
     resultado = sincronizar.verificar(tmp_path / 'audio.wav', original, tmp_path)
     assert resultado.estado == esperado
+
+
+def test_alass_no_adivina_cuadros_por_segundo(tmp_path, monkeypatch):
+    # Error real (Eminence in Shadow S01E04): alass estiro los tiempos por 25/23,976 y descarto un subtitulo correcto
+    original = _subtitulo(tmp_path, [i * 5000 + 70000 for i in range(20)])
+    comandos = []
+
+    def alass_falso(comando, **_kwargs):
+        comandos.append(comando)
+        pysubs2.load(comando[-2]).save(comando[-1])
+
+    monkeypatch.setattr(sincronizar, 'ruta_alass', lambda: 'alass')
+    monkeypatch.setattr(sincronizar.subprocess, 'run', alass_falso)
+    sincronizar.verificar(tmp_path / 'audio.wav', original, tmp_path)
+    assert len(comandos) == 2
+    assert all('--disable-fps-guessing' in c for c in comandos)

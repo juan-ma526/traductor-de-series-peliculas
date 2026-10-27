@@ -8,6 +8,9 @@ Lecciones de las pruebas:
 - En escenas con musica y sin dialogo alass inventa cortes (World Is Dancing E03: tramos movidos -36 s y +62 s
   en un subtitulo correcto). Por eso se calcula un corrimiento unico (--no-split) y se mide cuantas lineas
   coinciden con el en el modo con cortes: los subtitulos correctos dan 60-100 %, los de otro contenido menos del 10 %.
+- alass adivina por defecto un cambio de cuadros por segundo y estira los tiempos aunque no haga falta
+  (Eminence in Shadow S01E04: escalo por 25/23,976 un subtitulo correcto y cada linea se movia distinto).
+  Los subtitulos de un video siempre comparten su velocidad, asi que se desactiva.
 """
 import shutil
 import statistics
@@ -85,7 +88,7 @@ def extraer_audio(video : Path, destino : Path, idioma_audio : str|None = None) 
 
 def _movimientos(alass : str, audio : Path, subtitulo : Path, salida : Path, sin_cortes : bool) -> list[int]:
     """Cuanto mueve alass cada linea con texto."""
-    comando = [alass, *(['--no-split'] if sin_cortes else []), str(audio), str(subtitulo), str(salida)]
+    comando = [alass, '--disable-fps-guessing', *(['--no-split'] if sin_cortes else []), str(audio), str(subtitulo), str(salida)]
     subprocess.run(comando, capture_output=True)
     if not salida.exists():
         return []
