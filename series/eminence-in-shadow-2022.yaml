@@ -1,4 +1,5 @@
-# The Eminence in Shadow (2022). Creado por subtrad identificar; completar nombres_fijos.
+# The Eminence in Shadow (Kage no Jitsuryokusha ni Naritakute!, anime 2022).
+# Cid Kagenou (Minoru Kageno en su vida anterior) se hace llamar "Shadow" y lidera Shadow Garden.
 
 serie: The Eminence in Shadow
 año: 2022
@@ -7,9 +8,34 @@ ids:
   anilist: 130298
   tvmaze: 63236
   tmdb: 119495
+
 idioma_destino: Latin American Spanish
 codigo: es
 tratamiento: tuteo
-prompt: Translate to natural Latin American Spanish. Keep character, place and organization
-  names unchanged.
-nombres_fijos: []
+
+prompt: >
+  Translate to natural Latin American Spanish.
+  Keep character, place and organization names unchanged.
+  "Shadow" is the protagonist's alias: keep it as "Shadow" when it is his name, translate it only as a common noun ("sombra").
+  Keep "Shadow Garden" unchanged.
+  The Greek-letter members (Alpha, Beta, Gamma, Delta, Epsilon, Zeta, Eta, Nu) keep their English spelling.
+  Translate the generic word next to a name: "Oriana Kingdom" -> "Reino de Oriana", "Midgar Academy" -> "Academia Midgar",
+  "Bushin Festival" -> "Festival Bushin", "Cult of Diablos" -> "Culto de Diablos", "Seven Shades" -> "las Siete Sombras".
+  Joke names such as "Perv Asshat" or "Imatry Nottaloos" stay as they are.
+
+nombres_fijos: [
+  Shadow, Shadow Garden, Cid Kagenou, Cid, Kagenou, Minoru Kageno, Kageno Minoru, Minoru,
+  Alpha, Beta, Gamma, Delta, Epsilon, Zeta, Eta, Nu, Claire,
+  Alexia, Iris, Rose, Olivier, Beatrix, Annerose Nichtsehen, Annerose, Zenon Griffey, Zenon,
+  Quinton, Goldy Gilded, Goldy, Skel, Po, Sherry Barnett, Sherry, Natsume, Nishino, Nishimura,
+  Mundane Mann, Mundane, Perv Asshat, Perv, Imatry Nottaloos, Darwin Looking, Gonzales, Lindwurm, Velgalta,
+  Gettan, Yukime, John Smith, Mordred, Fido, Rex,
+  Midgar, Oriana, Mitsugoshi, Diablos, Bushin, Knights of Rounds
+]
+
+# Por si el traductor deja la palabra generica en ingles
+reemplazos:
+  Oriana Kingdom: Reino de Oriana
+  Midgar Kingdom: Reino de Midgar
+  Midgar Academy: Academia Midgar
+  Bushin Festival: Festival Bushin
