@@ -70,13 +70,28 @@ def test_acepta_cursivas_perdidas_tras_los_intentos(escribir, tmp_path, servidor
     assert [e.text for e in cargar(tmp_path / 'ep.es.ass').events] == ['¿Nos pide asilo?', '{\\an8}Asturia']
 
 
-def test_no_tolera_tags_de_posicion(escribir, tmp_path, servidor):
-    origen = escribir('ep.en.ass', [('Default', '{\\an8}Asturia')])
+def test_rearma_tags_de_cartel_como_ultimo_recurso(escribir, tmp_path, servidor):
+    # Caso real (Escaflowne E12): titulo con una palabra de otro color; el modelo pierde el tag intermedio
+    cartel = '{\\fad(814,0)\\pos(710,743)\\c&HF6F0F8&}The Secret {\\c&H65CB49&}Door'
+    origen = escribir('ep.en.ass', [('Default', cartel)])
+    trabajo = tmp_path / 'trabajo'
+    partes.preparar(origen, trabajo)
+    ServidorFalso.respuestas = ['[0] {\\fad(814,0)\\pos(710,743)\\c&HF6F0F8&}La puerta secreta'] * motor_api.INTENTOS
+
+    motor_api.traducir_capitulo(motor_api.MotorAPI('modelo-prueba', servidor, clave=''), trabajo, Perfil(serie='Prueba'))
+    partes.insertar(origen, trabajo, tmp_path / 'ep.es.ass')
+    texto = cargar(tmp_path / 'ep.es.ass').events[0].text
+    assert texto == '{\\fad(814,0)\\pos(710,743)\\c&HF6F0F8&}La puerta secreta{\\c&H65CB49&}'
+
+
+def test_no_acepta_lineas_faltantes_aunque_sea_el_ultimo_intento(escribir, tmp_path, servidor):
+    origen = escribir('ep.en.ass', [('Default', '{\\an8}Asturia'), ('Default', 'Bye.')])
     trabajo = tmp_path / 'trabajo'
     partes.preparar(origen, trabajo)
     ServidorFalso.respuestas = ['[0] Asturia'] * motor_api.INTENTOS
     with pytest.raises(motor_api.ErrorAPI):
         motor_api.traducir_capitulo(motor_api.MotorAPI('modelo-prueba', servidor, clave=''), trabajo, Perfil(serie='Prueba'))
+    assert (trabajo / '001.fallido.txt').exists()
 
 
 def test_falla_si_no_logra_corregir(escribir, tmp_path, servidor):

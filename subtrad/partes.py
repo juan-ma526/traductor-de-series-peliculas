@@ -181,6 +181,19 @@ def reparar(subs : pysubs2.SSAFile, traducciones : dict[int, str]) -> dict[int, 
 
 
 ERROR_CURSIVAS = 'cursivas alteradas'
+ERROR_TAGS = 'tags de estilo alterados'
+TAGS_INICIALES = regex.compile(r'^(?:\{[^}]*\})+')
+
+
+def forzar_tags(original : str, traduccion : str) -> str:
+    """Ultimo recurso cuando el modelo no logra ubicar los tags: tags iniciales del original + texto traducido +
+    los tags intermedios al final (donde ya no afectan a nada).
+    Conserva posicion, fuente y color base; solo se pierde, por ejemplo, el color distinto de una palabra.
+    Caso real (Escaflowne): carteles de titulo "The Secret {\\3c..}Door" con una palabra de otro color."""
+    inicio = TAGS_INICIALES.match(original)
+    iniciales = inicio.group(0) if inicio else ''
+    intermedios = ''.join(TAGS_ASS.findall(original[len(iniciales):]))
+    return iniciales + TAGS_ASS.sub('', traduccion).strip() + intermedios
 
 
 def _tags(texto : str, sin_cursivas : bool = False) -> list[str]:
@@ -207,7 +220,7 @@ def validar(subs : pysubs2.SSAFile, esperados : set[int], traducciones : dict[in
         texto = traducciones[i]
         original = subs.events[i].text
         if _tags(original, sin_cursivas=True) != _tags(texto, sin_cursivas=True):
-            errores.append(f"[{i}] tags de estilo alterados")
+            errores.append(f"[{i}] {ERROR_TAGS}")
         elif not tolerar_cursivas and _tags(original) != _tags(texto):
             errores.append(f"[{i}] {ERROR_CURSIVAS}")
         if ETIQUETAS_COLADAS.search(texto):

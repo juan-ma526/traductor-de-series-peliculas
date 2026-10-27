@@ -96,6 +96,21 @@ def _limpiar_respuesta(texto : str) -> str:
     return '\n'.join(lineas)
 
 
+def _ultimo_recurso(subs, esperados : dict[int, str], traducciones : dict[int, str], errores : list[str]) -> tuple[dict[int, str], list[str]]:
+    """Tras el ultimo intento, si solo quedan problemas de tags: cursivas se toleran y los demas tags se rearman
+    con partes.forzar_tags. Perder el color de una palabra o un enfasis es menor que perder el capitulo
+    (caso real: Escaflowne, 12 capitulos fallaban solo por tags)."""
+    solo_tags = all(e.endswith(partes.ERROR_CURSIVAS) or e.endswith(partes.ERROR_TAGS) for e in errores)
+    if not solo_tags:
+        return traducciones, errores
+    arregladas = dict(traducciones)
+    for error in errores:
+        if error.endswith(partes.ERROR_TAGS):
+            i = int(error[1:error.index(']')])
+            arregladas[i] = partes.forzar_tags(subs.events[i].text, arregladas[i])
+    return arregladas, partes.validar(subs, set(esperados), arregladas, tolerar_cursivas=True)
+
+
 def traducir_capitulo(motor, trabajo : Path, perfil : Perfil) -> None:
     """Traduce todas las partes de una carpeta de trabajo (preparada con partes.preparar) y escribe los NNN.out.txt."""
     manifiesto = json.loads((trabajo / 'manifiesto.json').read_text(encoding='utf-8'))
@@ -119,13 +134,14 @@ def traducir_capitulo(motor, trabajo : Path, perfil : Perfil) -> None:
             if not errores:
                 break
 
-            # Ultimo intento y solo quedan cursivas mal puestas: se acepta (perder el enfasis de una palabra es
-            # menor que perder el capitulo). Caso real: Escaflowne, 7 capitulos fallaban solo por cursivas.
-            if intento == INTENTOS - 1 and all(e.endswith(partes.ERROR_CURSIVAS) for e in errores):
-                manifiesto['tolerar_cursivas'] = True
-                (trabajo / 'manifiesto.json').write_text(json.dumps(manifiesto, indent=1), encoding='utf-8')
-                errores = []
-                break
+            if intento == INTENTOS - 1:
+                traducciones, errores = _ultimo_recurso(subs, esperados, traducciones, errores)
+                if not errores:
+                    manifiesto['tolerar_cursivas'] = True
+                    (trabajo / 'manifiesto.json').write_text(json.dumps(manifiesto, indent=1), encoding='utf-8')
+                    break
+                # Se guarda la ultima respuesta para poder ver que hizo el modelo
+                (trabajo / f'{nombre}.fallido.txt').write_text(respuesta, encoding='utf-8')
 
             # Se le devuelven los errores al modelo para que corrija sobre su propia respuesta
             mensajes += [{'role': 'assistant', 'content': respuesta},
