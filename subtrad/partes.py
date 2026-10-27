@@ -17,6 +17,8 @@ from subtrad.perfil import Perfil
 
 LINEA_TRADUCIDA = regex.compile(r'^\[(\d+)\]\s?(.*)$')
 TAGS_ASS = regex.compile(r'\{[^}]*\}')
+# Llaves sin ningun tag (\...): comentarios del autor, invisibles en pantalla
+COMENTARIO_ASS = regex.compile(r'\{[^}\\]*\}')
 DIBUJO_ASS = regex.compile(r'\\p[1-9]')
 KARAOKE = regex.compile(r'\\[kK][fo]?\d')
 # Estilos de canciones: palabras sueltas (OP, ED, Song...) o partes de un nombre mas largo
@@ -48,6 +50,13 @@ class Manifiesto:
 
 # Tags de un cartel ubicado o animado en pantalla (no es un dialogo comun)
 POSICIONADO = regex.compile(r'\\(?:pos|move|clip|iclip|org)\(|\\t\(')
+
+
+def sin_comentarios(texto : str) -> str:
+    """Saca los comentarios entre llaves.
+    Caso real (Eminence in Shadow S2): cada linea traia "{texto ingles alternativo}" y el modelo los copiaba mal;
+    eran la causa de la mayoria de los errores de tags. No se ven en pantalla: ni se traducen ni se conservan."""
+    return COMENTARIO_ASS.sub('', texto)
 
 
 def una_linea(texto : str) -> str:
@@ -124,7 +133,7 @@ def preparar(archivo : Path, trabajo : Path, lineas_por_parte : int = LINEAS_POR
     for inicio in range(0, len(indices), lineas_por_parte):
         nombre = f"{len(manifiesto.partes) + 1:03d}"
         bloque = indices[inicio:inicio + lineas_por_parte]
-        texto = '\n'.join(f"[{i}] {una_linea(subs.events[i].text)}" for i in bloque)
+        texto = '\n'.join(f"[{i}] {una_linea(sin_comentarios(subs.events[i].text))}" for i in bloque)
         (trabajo / f"{nombre}.txt").write_text(texto + '\n', encoding='utf-8')
         manifiesto.partes.append(nombre)
 
@@ -222,7 +231,7 @@ def reparar(subs : pysubs2.SSAFile, traducciones : dict[int, str]) -> dict[int, 
     Error frecuente en Kingdom y Escaflowne; se rearma igual que el original."""
     reparadas = dict(traducciones)
     for i, texto in traducciones.items():
-        original = subs.events[i].text
+        original = sin_comentarios(subs.events[i].text)
         if i < len(subs.events) and _toda_en_cursiva(original) and not _toda_en_cursiva(texto):
             cierre = '{\\i0}' if '{\\i0}' in original else '{\\i}'
             limpio = CURSIVA.sub('', texto)
@@ -241,6 +250,7 @@ def forzar_tags(original : str, traduccion : str) -> str:
     los tags intermedios al final (donde ya no afectan a nada).
     Conserva posicion, fuente y color base; solo se pierde, por ejemplo, el color distinto de una palabra.
     Caso real (Escaflowne): carteles de titulo "The Secret {\\3c..}Door" con una palabra de otro color."""
+    original = sin_comentarios(original)
     inicio = TAGS_INICIALES.match(original)
     iniciales = inicio.group(0) if inicio else ''
     intermedios = ''.join(TAGS_ASS.findall(original[len(iniciales):]))
@@ -249,7 +259,7 @@ def forzar_tags(original : str, traduccion : str) -> str:
 
 def _tags(texto : str, sin_cursivas : bool = False) -> list[str]:
     """Tags de estilo normalizados: {\\i0} y {\\i} cierran la cursiva igual."""
-    tags = [t.replace('{\\i0}', '{\\i}') for t in TAGS_ASS.findall(texto)]
+    tags = [t.replace('{\\i0}', '{\\i}') for t in TAGS_ASS.findall(sin_comentarios(texto))]
     if sin_cursivas:
         tags = [t for t in tags if not CURSIVA.fullmatch(t)]
     return sorted(tags)

@@ -60,6 +60,18 @@ def test_karaoke_silabico_y_copias_de_carteles(escribir, tmp_path):
     assert [e.text for e in eventos[-3:]] == [f'{{\\pos(100,{y})}}Fallecido ~ Kageno Minoru' for y in (10, 12, 14)]
 
 
+def test_comentarios_no_van_al_traductor(escribir, tmp_path):
+    # Caso real (Eminence in Shadow S2): comentarios con el texto ingles alternativo en cada linea
+    origen = escribir('ep.en.ass', [('Default', '{\\an8}Aww, man...{Aww, man, really...}')])
+    trabajo = tmp_path / 'trabajo'
+    partes.preparar(origen, trabajo)
+    assert '{Aww' not in (trabajo / '001.txt').read_text(encoding='utf-8')
+
+    traducir(trabajo, {0: '{\\an8}Ay, no...'})
+    partes.insertar(origen, trabajo, tmp_path / 'ep.es.ass')
+    assert cargar(tmp_path / 'ep.es.ass').events[0].text == '{\\an8}Ay, no...'
+
+
 def test_rechaza_tags_perdidos(escribir, tmp_path):
     # Cursiva parcial: no se puede rearmar sola
     origen = escribir('ep.en.ass', [('Default', '{\\i1}Hello{\\i0} friend')])
