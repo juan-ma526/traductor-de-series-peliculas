@@ -17,7 +17,11 @@ from subtrad.archivos import cargar
 EPISODIO = regex.compile(r'(?i)(?<![a-z0-9])S(\d{1,2})(?:E(\d{1,3})|\s*-\s*(\d{1,3}))')
 # Estilo anime sin temporada: "Tenkuu_no_Escaflowne_-_01_(...)", "Serie - 01 [1080p]"
 EPISODIO_ANIME = regex.compile(r'[ _]-[ _](\d{1,3})(?:v\d)?[ _.(\[]')
-ACOTACION_SDH = regex.compile(r'\[[^\]]*\]|\([A-Z][A-Z \-]+\)')
+# Acotaciones: [musica], (RISAS), y tambien en mayusculas con comas o en dos renglones (\N)
+# Caso real (Catch Me If You Can): "(ALARM SOUNDING,\NCUPS CLANKING)"
+ACOTACION_SDH = regex.compile(r"""\[[^\]]*\]|\(["A-Z](?:[A-Z0-9 ,.'’"!?\-]|\\N)+\)""")
+# Quien habla, al principio de un renglon (aunque haya un tag de cursiva antes): "MAN:\N...", "- FRANK: ..."
+HABLANTE_SDH = regex.compile(r"(?:^|(?<=\\N)|(?<=^- )|(?<=\\N- )|(?<=\}))[A-Z][A-Z0-9 .'’\-]{1,30}:\s*(?:\\N)?")
 
 
 @dataclass
@@ -57,11 +61,13 @@ def es_sdh(ruta : Path, titulo : str = '') -> bool:
 
 
 def limpiar_sdh(ruta : Path) -> None:
-    """Saca las acotaciones ([musica], (RISAS)) y las lineas que quedan vacias."""
+    """Saca las acotaciones ([musica], (RISAS)), quien habla ("MAN:") y las lineas que quedan vacias."""
     subs = cargar(ruta)
     for evento in subs.events:
-        evento.text = regex.sub(r'\s{2,}', ' ', ACOTACION_SDH.sub('', evento.text)).strip()
-        evento.text = regex.sub(r'^(\\N)+|(\\N)+$', '', evento.text)
+        texto = HABLANTE_SDH.sub('', ACOTACION_SDH.sub('', evento.text))
+        texto = regex.sub(r'\s{2,}', ' ', texto).strip()
+        texto = regex.sub(r'(?:\s*\\N\s*){2,}', r'\\N', texto)
+        evento.text = regex.sub(r'^(\s*\\N)+|(\\N\s*)+$', '', texto).strip()
     subs.events = [e for e in subs.events if e.plaintext.strip(' -')]
     subs.save(str(ruta), encoding='utf-8')
 

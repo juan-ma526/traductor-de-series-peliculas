@@ -26,6 +26,17 @@ def test_limpiar_sdh(tmp_path):
     assert [e.plaintext for e in eventos] == ['- All things must\ncome to an end.']
 
 
+def test_limpiar_sdh_acotaciones_en_dos_renglones_y_hablantes(tmp_path):
+    # Caso real (Catch Me If You Can): acotaciones con comas en dos renglones y nombres de quien habla
+    ruta = tmp_path / 'peli.en.srt'
+    ruta.write_text('1\n00:00:01,000 --> 00:00:02,000\n(ALARM SOUNDING,\nCUPS CLANKING)\n\n'
+                    '2\n00:00:03,000 --> 00:00:04,000\nMAN:\nThe New Rochelle Rotary Club\n\n'
+                    '3\n00:00:05,000 --> 00:00:06,000\n- FRANK: Dad?\n- Yes.\n', encoding='utf-8')
+    conseguir.limpiar_sdh(ruta)
+    eventos = pysubs2.load(str(ruta)).events
+    assert [e.plaintext for e in eventos] == ['The New Rochelle Rotary Club', '- Dad?\n- Yes.']
+
+
 def test_hash_video_es_estable(tmp_path):
     ruta = tmp_path / 'video.mkv'
     ruta.write_bytes(bytes(range(256)) * 1024)

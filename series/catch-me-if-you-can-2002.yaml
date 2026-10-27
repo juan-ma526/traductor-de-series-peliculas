@@ -1,13 +1,26 @@
-# Catch Me If You Can (2002). Creado por subtrad identificar; completar nombres_fijos.
+# Catch Me If You Can (2002, Steven Spielberg). En Latinoamerica: "Atrapame si puedes".
+# Frank Abagnale Jr. falsifica cheques y se hace pasar por piloto, medico y abogado; lo persigue el agente del FBI Carl Hanratty.
 
 serie: Catch Me If You Can
 año: 2002
 tipo: pelicula
 ids:
   tmdb: 640
+
 idioma_destino: Latin American Spanish
 codigo: es
 tratamiento: tuteo
-prompt: Translate to natural Latin American Spanish. Keep character, place and organization
-  names unchanged.
-nombres_fijos: []
+
+prompt: >
+  Translate to natural Latin American Spanish.
+  Keep character, place, airline and company names unchanged.
+  The film is set in the 1960s: avoid modern slang.
+  Use "usted" between strangers, with authorities and in formal or professional situations (FBI agents with suspects, doctors, lawyers, airline staff), "tú" between family and close friends.
+  Aliases are names too: "Frank Taylor", "Barry Allen", "Frank Conners", "Frank Black" stay unchanged.
+
+nombres_fijos: [
+  Frank William Abagnale, Frank Abagnale, Abagnale, Frank, Frankie, Carl Hanratty, Carl, Hanratty, Brenda Strong, Brenda,
+  Paula, Roger Strong, Carol Strong, Earl Amdursky, Amdursky, Fox, Jack Barnes, Tom Fox, Darcy, Cheryl Ann, Lucy, Marci, Monique,
+  Frank Taylor, Barry Allen, Frank Conners, Frank Black, Conners,
+  Pan Am, FBI, Montrichard, New Rochelle, Ashland, Atlanta, Miami, Louisiana, Riverside Hospital
+]

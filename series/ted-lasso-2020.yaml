@@ -1,4 +1,5 @@
-# Ted Lasso (2020). Creado por subtrad identificar; completar nombres_fijos.
+# Ted Lasso (2020, Apple TV). Comedia: un entrenador de futbol americano dirige al AFC Richmond en Inglaterra.
+# Los videos traen subtitulos oficiales en español latino: traducir solo para comparar calidad.
 
 serie: Ted Lasso
 año: 2020
@@ -6,9 +7,22 @@ tipo: serie
 ids:
   tvmaze: 44458
   tmdb: 97546
+
 idioma_destino: Latin American Spanish
 codigo: es
 tratamiento: tuteo
-prompt: Translate to natural Latin American Spanish. Keep character, place and organization
-  names unchanged.
-nombres_fijos: []
+
+prompt: >
+  Translate to natural Latin American Spanish.
+  Keep character, place, club and company names unchanged.
+  It is a comedy: keep the jokes, puns and Ted's folksy American expressions natural and funny in Spanish, not literal.
+  "Football" is soccer ("fútbol"); American football is "fútbol americano". "Coach" is "entrenador" (or "Coach" when used as a name: "Coach Beard").
+  Keep "Greyhounds" (the team's nickname) unchanged.
+
+nombres_fijos: [
+  Ted Lasso, Ted, Coach Beard, Beard, Rebecca, Keeley, Roy Kent, Roy, Jamie Tartt, Jamie, Sam Obisanya, Sam,
+  Nate, Nathan, Higgins, Leslie, Dani Rojas, Dani, Isaac, Colin, Richard, Thierry, Jan Maas, Bumbercatch,
+  Sharon, Phoebe, Rupert, Trent Crimm, Edwin Akufo, Mae, Jane, Nora, Arlo, Henry, Paul, Earl, Bowen,
+  AFC Richmond, Richmond, Greyhounds, Nelson Road, Crown & Anchor, Dubai Air, Bantr,
+  Manchester City, Man City, Chelsea, Brentford, Sheffield Wednesday, Tottenham, Arsenal
+]

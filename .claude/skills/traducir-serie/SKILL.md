@@ -59,6 +59,10 @@ Los capítulos que ya tienen traducción NO se saltean a ciegas (pueden venir de
 - Lanzar un subagente por capítulo con la herramienta Agent, `model: "haiku"`, `subagent_type: "general-purpose"`, de a 5 en paralelo:
   > Lee con Read el archivo "<ruta de INSTRUCCIONES.txt>" y segui exactamente esas instrucciones. Son tu tarea completa.
 - Cuando cada uno termina, confirmar que existe el `.es` y lanzar el siguiente.
+- Archivos largos (peliculas: mas de 8 partes) se reparten entre varios subagentes, unas 5 partes cada uno, en paralelo:
+  > Lee con Read el archivo "<INSTRUCCIONES.txt>" y segui sus reglas, con dos cambios: traduci SOLO las partes NNN.txt a MMM.txt
+  > y NO ejecutes el comando de insertar. Responde OK con las partes escritas o ERROR con el detalle.
+  Cuando terminan todos, correr vos el comando de insertar que figura en INSTRUCCIONES.txt (caso real: Catch Me If You Can, 22 partes en 4 subagentes).
 - Al terminar todos: `subtrad limpiar <carpeta>`.
 
 ### 6. Postproceso
