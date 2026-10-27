@@ -74,6 +74,8 @@ Al final informa los tokens usados.
 ## Uso (comandos sueltos)
 
 ```bash
+subtrad identificar "<carpeta>"                   # que serie es: perfil existente o candidatos (AniList, TVmaze, TMDB)
+subtrad identificar "<carpeta>" --crear 1         # crea el perfil base del candidato elegido
 subtrad conseguir "<carpeta>" --serie "<titulo>"   # el ingles de cada video: pistas o descarga, verificado contra el audio
 subtrad extraer "<carpeta>"                       # saca los subs en ingles de los videos (.en.ass), sin verificar
 subtrad pendientes "<carpeta>"                    # que falta traducir y que ya esta traducido

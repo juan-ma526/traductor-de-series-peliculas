@@ -1,5 +1,6 @@
 """Linea de comandos: subtrad <comando> ...
 
+  identificar  que serie es (perfil existente, o candidatos de AniList/TVmaze/TMDB)
   conseguir    consigue el original de cada video (pistas o descarga) verificado contra el audio
   extraer      saca los subtitulos de los videos de una carpeta
   pendientes   lista originales y si ya tienen traduccion
@@ -19,7 +20,7 @@ import sys
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
 
-from subtrad import archivos, conseguir, motor_api, nombres, opensubtitles, partes, postproceso, revisar, sincronizar, video
+from subtrad import archivos, config, conseguir, identificar, motor_api, nombres, opensubtitles, partes, postproceso, revisar, sincronizar, video
 from subtrad.perfil import Perfil, cargar_perfil
 
 CARPETA_TRABAJO = '.traduccion'
@@ -58,6 +59,36 @@ def cmd_extraer(args : argparse.Namespace) -> int:
 
     print(f"Resumen: {dict(estados)}")
     return 1 if estados['error'] or estados['sin_pista'] or estados['no_extraible'] else 0
+
+
+def cmd_identificar(args : argparse.Namespace) -> int:
+    """Identifica la serie de una carpeta. Codigo de salida 0 si queda claro, 3 si hay que preguntarle al usuario."""
+    perfiles = Path(args.perfiles)
+    resultado = identificar.identificar(Path(args.carpeta), perfiles)
+    pistas = resultado.pistas
+    print(f"Carpeta: titulo '{pistas.titulo}', año {pistas.año or '?'}, {pistas.videos} videos")
+
+    if resultado.perfil:
+        print(f"PERFIL EXISTENTE\t{resultado.perfil}")
+        return 0
+    if not resultado.candidatos:
+        print("SIN CANDIDATOS: preguntar al usuario el titulo exacto y el año")
+        return 3
+
+    if args.crear is not None:
+        elegido = resultado.candidatos[args.crear - 1]
+        print(f"PERFIL CREADO\t{identificar.crear_perfil(elegido, perfiles)}")
+        return 0
+
+    for n, c in enumerate(resultado.candidatos[:8], 1):
+        ids = ', '.join(f'{k} {v}' for k, v in c.ids.items())
+        episodios = f", {c.episodios} episodios" if c.episodios else ''
+        print(f"{n}. {c.titulo} ({c.año or '?'}) - {c.tipo}{episodios} - {c.detalle} [{ids}] (puntaje {c.puntaje})")
+    if resultado.claro:
+        print("CLARO\t1  (crear el perfil con --crear 1)")
+        return 0
+    print("AMBIGUO: preguntar al usuario cual es; despues --crear N")
+    return 3
 
 
 def cmd_conseguir(args : argparse.Namespace) -> int:
@@ -258,6 +289,12 @@ def construir_parser() -> argparse.ArgumentParser:
     p.add_argument('--sobrescribir', action='store_true')
     p.add_argument('--listar', action='store_true', help='solo mostrar las pistas de cada video')
     p.set_defaults(funcion=cmd_extraer)
+
+    p = comandos.add_parser('identificar', help='identifica la serie de una carpeta (AniList, TVmaze, TMDB opcional)')
+    p.add_argument('carpeta')
+    p.add_argument('--perfiles', default=str(config.RAIZ_REPO / 'series'), help='carpeta de perfiles')
+    p.add_argument('--crear', type=int, help='crear el perfil base del candidato N')
+    p.set_defaults(funcion=cmd_identificar)
 
     p = comandos.add_parser('conseguir', help='consigue el original de cada video y verifica que corresponda al audio')
     p.add_argument('carpeta')

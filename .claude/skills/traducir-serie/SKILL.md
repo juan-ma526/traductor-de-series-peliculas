@@ -21,14 +21,14 @@ Comandos: `extraer`, `pendientes`, `nombres`, `preparar`, `insertar`, `limpiar`,
 ## Pasos
 
 ### 1. Identificar la serie
-- Mirar el nombre de la carpeta, de la carpeta padre y de los archivos: título, año, `S3E01`, grupo del release.
-- Buscar un perfil que coincida en `<repo>/series/*.yaml` (claves `serie`, `año`, `tipo`).
-- Si hay una sola coincidencia clara, usarla.
-- Si el título es ambiguo o falta el año, PREGUNTAR al usuario mostrando las opciones posibles.
-  Ejemplo: "Kingdom" puede ser el anime (2012), la serie coreana de Netflix (2019) o las películas live action japonesas.
+- `subtrad identificar <carpeta>` (usa la carpeta padre si es "Season N"; busca en AniList, TVmaze y TMDB si hay clave).
+  - `PERFIL EXISTENTE <ruta>`: usar ese perfil.
+  - `CLARO`: una sola identidad; crear su perfil con `subtrad identificar <carpeta> --crear 1`.
+  - `AMBIGUO` o `SIN CANDIDATOS`: PREGUNTAR al usuario mostrando los candidatos (titulo, año, tipo, cadena)
+    y despues `--crear N` con el elegido. Ejemplo: "Kingdom" puede ser el anime (2012), la serie coreana de Netflix (2019) o la de 2014.
 
 ### 2. Cargar o crear el perfil
-Si no existe perfil para la serie, crear `<repo>/series/<serie>-<año>.yaml` (formato de `kingdom-2012.yaml`):
+Si el perfil es nuevo (recien creado por `identificar --crear`), completarlo (formato de `kingdom-2012.yaml`):
 - Preguntar idioma destino y reglas, o usar las del argumento.
   Por defecto: `Latin American Spanish`, tuteo, nombres de personajes/unidades/lugares sin traducir.
 - Correr `subtrad nombres <carpeta>` sobre los originales y proponer al usuario la lista de `nombres_fijos`.
