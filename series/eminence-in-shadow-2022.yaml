@@ -1,0 +1,15 @@
+# The Eminence in Shadow (2022). Creado por subtrad identificar; completar nombres_fijos.
+
+serie: The Eminence in Shadow
+año: 2022
+tipo: anime
+ids:
+  anilist: 130298
+  tvmaze: 63236
+  tmdb: 119495
+idioma_destino: Latin American Spanish
+codigo: es
+tratamiento: tuteo
+prompt: Translate to natural Latin American Spanish. Keep character, place and organization
+  names unchanged.
+nombres_fijos: []

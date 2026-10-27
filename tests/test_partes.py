@@ -40,6 +40,26 @@ def test_no_extrae_canciones_ni_comentarios(escribir, tmp_path):
     assert manifiesto.eventos == [0, 3]
 
 
+def test_karaoke_silabico_y_copias_de_carteles(escribir, tmp_path):
+    # Caso real (Eminence in Shadow): karaoke silaba por silaba en estilos sin nombre de cancion,
+    # y un cartel que sigue a la camara repetido cuadro por cuadro
+    silabas = [('neo shadow OR', s) for s in ['ko', 'no', 'su', 'be', 'te'] * 5]
+    silabas += [('neo shadow OR2', 'me'), ('neo shadow OR2', 'mae ni biru yo')]
+    cartel = [('Sign', f'{{\\pos(100,{y})}}Deceased ~ Kageno Minoru') for y in (10, 12, 14)]
+    origen = escribir('ep.en.ass', [('Main', 'Hello.')] + silabas + cartel)
+    trabajo = tmp_path / 'trabajo'
+    manifiesto = partes.preparar(origen, trabajo)
+
+    primero = 1 + len(silabas)
+    assert manifiesto.eventos == [0, primero]
+    assert manifiesto.duplicados == {str(primero + 1): primero, str(primero + 2): primero}
+
+    traducir(trabajo, {0: 'Hola.', primero: '{\\pos(100,10)}Fallecido ~ Kageno Minoru'})
+    partes.insertar(origen, trabajo, tmp_path / 'ep.es.ass')
+    eventos = cargar(tmp_path / 'ep.es.ass').events
+    assert [e.text for e in eventos[-3:]] == [f'{{\\pos(100,{y})}}Fallecido ~ Kageno Minoru' for y in (10, 12, 14)]
+
+
 def test_rechaza_tags_perdidos(escribir, tmp_path):
     # Cursiva parcial: no se puede rearmar sola
     origen = escribir('ep.en.ass', [('Default', '{\\i1}Hello{\\i0} friend')])

@@ -18,7 +18,7 @@ from pathlib import Path
 
 import pysubs2
 
-from subtrad import config
+from subtrad import config, partes
 from subtrad.archivos import cargar
 
 ENCAJA = 'encaja'
@@ -93,13 +93,27 @@ def _movimientos(alass : str, audio : Path, subtitulo : Path, salida : Path, sin
     return [b.start - a.start for a, b in zip(originales, movidos) if a.plaintext.strip()]
 
 
+def _solo_dialogos(subtitulo : Path, carpeta : Path) -> Path:
+    """Copia con solo los dialogos, para medir la sincronia sin carteles animados ni karaoke
+    (Eminence in Shadow: 9000 lineas decorativas y 261 dialogos). Si hay muy pocos dialogos, el original."""
+    subs = cargar(subtitulo)
+    dialogos = set(partes.eventos_de_dialogo(subs))
+    if len(dialogos) < 20 or len(dialogos) == len(subs.events):
+        return subtitulo
+    subs.events = [e for i, e in enumerate(subs.events) if i in dialogos]
+    destino = carpeta / f'dialogos_{subtitulo.stem}.ass'
+    subs.save(str(destino), encoding='utf-8')
+    return destino
+
+
 def verificar(audio : Path, subtitulo : Path, carpeta_temporal : Path|None = None) -> Verificacion:
-    """Compara el subtitulo con el audio: corrimiento unico y cuantas lineas lo confirman."""
+    """Compara los dialogos del subtitulo con el audio: corrimiento unico y cuantas lineas lo confirman.
+    Si hay que corregir, el corrimiento se aplica al subtitulo completo (con carteles y canciones)."""
     carpeta = carpeta_temporal or Path(tempfile.mkdtemp())
     alass = ruta_alass()
-    corregido = carpeta / f'unico_{subtitulo.name}'
-    unico = _movimientos(alass, audio, subtitulo, corregido, sin_cortes=True)
-    con_cortes = _movimientos(alass, audio, subtitulo, carpeta / f'cortes_{subtitulo.name}', sin_cortes=False)
+    medido = _solo_dialogos(subtitulo, carpeta)
+    unico = _movimientos(alass, audio, medido, carpeta / f'unico_{medido.name}', sin_cortes=True)
+    con_cortes = _movimientos(alass, audio, medido, carpeta / f'cortes_{medido.name}', sin_cortes=False)
     if not unico or not con_cortes:
         return Verificacion(NO_ENCAJA, 0, 0)
 
@@ -112,4 +126,10 @@ def verificar(audio : Path, subtitulo : Path, carpeta_temporal : Path|None = Non
         return Verificacion(NO_ENCAJA, corrimiento, coinciden)
     if despreciable:
         return Verificacion(ENCAJA, corrimiento, coinciden)
+
+    # El subtitulo completo movido lo mismo (alass solo vio los dialogos)
+    completo = cargar(subtitulo)
+    completo.shift(ms=int(corrimiento))
+    corregido = carpeta / f'corregido_{subtitulo.name}'
+    completo.save(str(corregido), encoding='utf-8')
     return Verificacion(CORRIDO, corrimiento, coinciden, corregido)

@@ -11,7 +11,7 @@ from pathlib import Path
 
 import regex
 
-from subtrad import opensubtitles, sincronizar, video as videos
+from subtrad import opensubtitles, partes, sincronizar, video as videos
 from subtrad.archivos import cargar
 
 EPISODIO = regex.compile(r'(?i)(?<![a-z0-9])S(\d{1,2})(?:E(\d{1,3})|\s*-\s*(\d{1,3}))')
@@ -77,8 +77,12 @@ PALABRAS_INGLES = regex.compile(r"\b(the|you|and|what|this|that|is|are|it's|don'
 
 
 def parece_ingles(ruta : Path) -> bool:
-    """El texto de la pista esta en ingles (mas de un tercio de las lineas con palabras muy comunes del ingles)."""
-    textos = [e.plaintext for e in cargar(ruta).events if e.plaintext.strip()]
+    """El texto de la pista esta en ingles (mas de un tercio de los dialogos con palabras muy comunes del ingles).
+    Se miran solo los dialogos: en Eminence in Shadow 9000 lineas de karaoke y carteles tapaban 261 dialogos."""
+    subs = cargar(ruta)
+    dialogos = partes.eventos_de_dialogo(subs)
+    textos = [subs.events[i].plaintext for i in dialogos] if len(dialogos) >= 20 else [e.plaintext for e in subs.events]
+    textos = [t for t in textos if t.strip()]
     return bool(textos) and sum(bool(PALABRAS_INGLES.search(t)) for t in textos) / len(textos) > 0.33
 
 

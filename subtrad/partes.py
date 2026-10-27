@@ -42,6 +42,12 @@ class Manifiesto:
     archivo : str
     eventos : list[int]
     partes : list[str] = field(default_factory=list)
+    # Copias de un cartel (mismo estilo y texto, otra posicion): id de la copia -> id que se traduce
+    duplicados : dict[str, int] = field(default_factory=dict)
+
+
+# Tags de un cartel ubicado o animado en pantalla (no es un dialogo comun)
+POSICIONADO = regex.compile(r'\\(?:pos|move|clip|iclip|org)\(|\\t\(')
 
 
 def una_linea(texto : str) -> str:
@@ -49,27 +55,72 @@ def una_linea(texto : str) -> str:
     return texto.replace('\r', '').replace('\n', '\\N')
 
 
+def estilos_decorativos(subs : pysubs2.SSAFile) -> set[str]:
+    """Estilos de karaoke silaba por silaba: la mayoria de sus lineas tienen 3 letras o menos.
+    Caso real (Eminence in Shadow): "neo shadow OE" / "neo shadow OR", ~1800 silabas del opening por capitulo."""
+    textos : dict[str, list[str]] = {}
+    for evento in subs.events:
+        if not evento.is_comment and evento.plaintext.strip():
+            textos.setdefault(evento.style, []).append(evento.plaintext.strip())
+
+    def mediana_corta(lista : list[str]) -> bool:
+        largos = sorted(len(t) for t in lista)
+        return largos[len(largos) // 2] <= 3
+
+    decorativos = {estilo for estilo, lista in textos.items()
+                   if len(lista) >= 20 and (mediana_corta(lista) or mediana_corta(list(set(lista))))}
+    # Variantes numeradas de un estilo decorativo ("neo shadow OR2" de "neo shadow OR") tambien lo son
+    familias = {regex.sub(r'\d+$', '', e).strip() for e in decorativos}
+    return decorativos | {e for e in textos if regex.sub(r'\d+$', '', e).strip() in familias}
+
+
 def eventos_traducibles(subs : pysubs2.SSAFile) -> list[int]:
     """Indices de los eventos con texto visible.
     Se omiten comentarios, dibujos ASS y canciones (karaoke o estilos de OP/ED), que quedan como estan."""
+    decorativos = estilos_decorativos(subs)
     indices = []
     for i, evento in enumerate(subs.events):
         if evento.is_comment or DIBUJO_ASS.search(evento.text):
             continue
-        if KARAOKE.search(evento.text) or ESTILO_CANCION.search(evento.style):
+        if KARAOKE.search(evento.text) or ESTILO_CANCION.search(evento.style) or evento.style in decorativos:
             continue
         if evento.plaintext.strip():
             indices.append(i)
     return indices
 
 
+def eventos_de_dialogo(subs : pysubs2.SSAFile) -> list[int]:
+    """Traducibles que no son carteles ubicados en pantalla: sirven para detectar idioma y sincronia
+    sin que miles de carteles animados cuadro por cuadro tapen los dialogos."""
+    return [i for i in eventos_traducibles(subs) if not POSICIONADO.search(subs.events[i].text)]
+
+
+def _agrupar_copias(subs : pysubs2.SSAFile, indices : list[int]) -> tuple[list[int], dict[str, int]]:
+    """Un cartel que sigue el movimiento de la camara se repite cuadro por cuadro con el mismo texto.
+    Se traduce una sola vez y se copia (caso real: "Deceased ~ Kageno Minoru (18)", 51 copias)."""
+    primero : dict[tuple[str, str], int] = {}
+    unicos, duplicados = [], {}
+    for i in indices:
+        evento = subs.events[i]
+        if not POSICIONADO.search(evento.text):
+            unicos.append(i)
+            continue
+        clave = (evento.style, evento.plaintext.strip())
+        if clave in primero:
+            duplicados[str(i)] = primero[clave]
+        else:
+            primero[clave] = i
+            unicos.append(i)
+    return unicos, duplicados
+
+
 def preparar(archivo : Path, trabajo : Path, lineas_por_parte : int = LINEAS_POR_PARTE) -> Manifiesto:
     """Escribe 001.txt, 002.txt... con lineas "[id] texto" y un manifiesto.json en la carpeta de trabajo."""
     subs = cargar(archivo)
-    indices = eventos_traducibles(subs)
+    indices, duplicados = _agrupar_copias(subs, eventos_traducibles(subs))
     trabajo.mkdir(parents=True, exist_ok=True)
 
-    manifiesto = Manifiesto(str(archivo), indices)
+    manifiesto = Manifiesto(str(archivo), indices, duplicados=duplicados)
     for inicio in range(0, len(indices), lineas_por_parte):
         nombre = f"{len(manifiesto.partes) + 1:03d}"
         bloque = indices[inicio:inicio + lineas_por_parte]
@@ -246,5 +297,11 @@ def insertar(archivo : Path, trabajo : Path, salida : Path) -> int:
 
     for i, texto in traducciones.items():
         subs.events[i].text = texto
+
+    # Copias de carteles: el texto traducido con los tags (posicion de ese cuadro) de cada copia
+    for copia, original in manifiesto.get('duplicados', {}).items():
+        evento = subs.events[int(copia)]
+        if original in traducciones:
+            evento.text = forzar_tags(evento.text, traducciones[original])
     subs.save(str(salida), encoding='utf-8')
-    return len(traducciones)
+    return len(traducciones) + len(manifiesto.get('duplicados', {}))
