@@ -36,10 +36,10 @@ Si el perfil es nuevo (recien creado por `identificar --crear`), completarlo (fo
 
 ### 3. Conseguir el original en inglés
 - `subtrad conseguir <carpeta> --serie "<titulo para buscar>"`.
-  Junta candidatos (archivo al lado, pistas del video y, si ninguno sirve, descargas de OpenSubtitles) y verifica cada uno contra el audio con alass.
+  Junta candidatos (archivo al lado, pistas del video y, si ninguno sirve, descargas de OpenSubtitles, Subdl y Gestdown, en ese orden) y verifica cada uno contra el audio con alass.
   Deja al lado de cada video el que corresponde (`<video>.en.<ext>`); si estaba corrido parejo, ya corregido; si es SDH, sin acotaciones.
 - NUNCA confiar en una pista solo porque viene en el video: puede ser de otro contenido (pasó en World Is Dancing).
-- Si un capítulo queda `SIN SUBS`, avisar al usuario (puede faltar en OpenSubtitles o haberse agotado el límite diario de descargas).
+- Si un capítulo queda `SIN SUBS`, avisar al usuario (puede no haber en ninguna fuente o haberse agotado el límite diario de OpenSubtitles).
 - Si falta alass o la API key, el comando lo dice: explicarle al usuario cómo configurarlo (README, sección Configuración).
 
 ### 4. Revisar lo que ya está traducido

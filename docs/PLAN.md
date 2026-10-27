@@ -181,7 +181,7 @@ Todo esto aparecio revisando las temporadas 1 a 6 de Kingdom y tiene que quedar 
 6. [x] Adaptador OpenCode: comandos y subagente traductor (el flujo se describe una sola vez, en el SKILL.md).
 7. [x] Motor por API compatible con OpenAI (`subtrad traducir`), con validacion y correccion por parte.
 8. [x] `subtrad identificar`: perfil existente o candidatos de AniList + TVmaze (+ TMDB con clave); si es ambiguo, el agente pregunta.
-9. [~] `conseguir.py` + `sincronizar.py`: hecho con OpenSubtitles + alass (verifica pistas, archivos y descargas contra el audio). Falta: Subdl/Animetosho como fuentes extra.
+9. [~] `conseguir.py` + `sincronizar.py`: hecho con OpenSubtitles, Subdl y Gestdown (Addic7ed) + alass (verifica pistas, archivos y descargas contra el audio). Falta: Animetosho para anime (su buscador funciona, pero el servidor de descargas `storage.animetosho.org` no resolvia en DNS el 2026-10-28).
 10. [ ] Documentar en el README: instalacion, flujo completo y como crear el perfil de una serie nueva.
 11. [ ] Borrar el clon de `llm-subtrans` cuando todo funcione en el repo nuevo.
 

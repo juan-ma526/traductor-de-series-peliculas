@@ -33,6 +33,9 @@ Copiar `.env.example` a `.env` (no se sube al repo) y completar:
 - `OPENSUBTITLES_API_KEY`: para descargar subtitulos cuando los videos no los traen o vienen mal.
   Se saca gratis en opensubtitles.com -> perfil -> API Consumers.
 - `OPENSUBTITLES_USERNAME` / `OPENSUBTITLES_PASSWORD` (opcional): sube el limite de 5 a 20 descargas por dia.
+- `SUBDL_API_KEY` (opcional): segunda fuente de descargas (subdl.com, cuenta gratis), para peliculas y series.
+  Las fuentes se prueban en orden: OpenSubtitles, Subdl y Gestdown (subtitulos de Addic7ed, solo series, sin clave).
+  Si una se queda sin cupo o falla, se sigue con la siguiente.
 - `ALASS_PATH`: ruta a `alass-cli` ([github.com/kaegi/alass](https://github.com/kaegi/alass/releases)), que verifica y corrige la sincronia contra el audio.
 
 ## Uso con Claude Code (recomendado)

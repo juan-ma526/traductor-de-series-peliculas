@@ -1,7 +1,7 @@
 """Consigue el subtitulo original (normalmente en ingles) de cada video y verifica que corresponda al audio.
 
 Candidatos, en orden: el archivo que ya esta al lado del video, las pistas de texto del video y, si ninguno sirve,
-descargas de OpenSubtitles. Cada candidato se verifica contra el audio con alass y se queda el mejor.
+descargas de las fuentes configuradas (OpenSubtitles, Subdl, Gestdown, en ese orden). Cada candidato se verifica contra el audio con alass y se queda el mejor.
 """
 import shutil
 import subprocess
@@ -11,7 +11,7 @@ from pathlib import Path
 
 import regex
 
-from subtrad import opensubtitles, partes, sincronizar, video as videos
+from subtrad import fuentes, partes, sincronizar, video as videos
 from subtrad.archivos import cargar
 
 EPISODIO = regex.compile(r'(?i)(?<![a-z0-9])S(\d{1,2})(?:E(\d{1,3})|\s*-\s*(\d{1,3}))')
@@ -23,7 +23,7 @@ ACOTACION_SDH = regex.compile(r'\[[^\]]*\]|\([A-Z][A-Z \-]+\)')
 @dataclass
 class Candidato:
     """Un subtitulo posible para un video."""
-    origen : str                 # 'existente', 'pista #N', 'opensubtitles <file_id>'
+    origen : str                 # 'existente', 'pista #N', '<fuente> <release>'
     ruta : Path
     sdh : bool = False
     verificacion : sincronizar.Verificacion|None = None
@@ -110,10 +110,36 @@ def _pistas_del_video(video : Path, idioma : str, temporal : Path) -> list[Candi
     return candidatos
 
 
-def conseguir_video(video : Path, idioma : str = 'en', consulta : str = '', cliente : opensubtitles.Cliente|None = None,
+def _que_sirven(candidatos : list[Candidato]) -> list[Candidato]:
+    return [c for c in candidatos if c.verificacion and c.verificacion.estado != sincronizar.NO_ENCAJA]
+
+
+def _descargar_hasta_encajar(fuente : fuentes.Fuente, video : Path, idioma : str, consulta : str, audio : Path,
+                             temporal : Path, max_descargas : int) -> tuple[list[Candidato], str]:
+    """Descarga y verifica resultados de una fuente hasta que uno encaje; devuelve los candidatos y un aviso.
+    Un error o un limite agotado en una fuente no corta: se sigue con la proxima."""
+    candidatos : list[Candidato] = []
+    temporada, episodio = temporada_y_episodio(video)
+    try:
+        for resultado in fuente.buscar(consulta, temporada, episodio, idioma, video)[:max_descargas]:
+            ruta = fuente.descargar(resultado, temporal)
+            candidato = Candidato(f'{fuente.nombre} {resultado.release or resultado.id}'[:90], ruta, es_sdh(ruta))
+            candidato.verificacion = sincronizar.verificar(audio, ruta, temporal)
+            candidatos.append(candidato)
+            if candidato.verificacion.estado == sincronizar.ENCAJA:
+                break
+    except fuentes.LimiteAgotado:
+        return candidatos, f'se agotaron las descargas de hoy en {fuente.nombre}'
+    except fuentes.ErrorFuente as error:
+        return candidatos, f'{fuente.nombre}: {error}'
+    return candidatos, ''
+
+
+def conseguir_video(video : Path, idioma : str = 'en', consulta : str = '', fuentes_descarga : list[fuentes.Fuente]|None = None,
                     max_descargas : int = 2, idioma_audio : str|None = None) -> ResultadoVideo:
     """Elige y deja al lado del video el mejor subtitulo verificado: <video>.<idioma>.<ext>.
-    Un subtitulo que ya estaba al lado del video tambien se verifica: puede estar mal."""
+    Un subtitulo que ya estaba al lado del video tambien se verifica: puede estar mal.
+    Si ninguno sirve, prueba las fuentes de descarga en orden y se detiene en la primera que da uno que sirva."""
     temporal = Path(tempfile.mkdtemp(prefix='subtrad_'))
     try:
         existentes = [video.with_name(f'{video.stem}.{idioma}{ext}') for ext in ('.ass', '.srt', '.vtt')]
@@ -124,26 +150,18 @@ def conseguir_video(video : Path, idioma : str = 'en', consulta : str = '', clie
         for candidato in candidatos:
             candidato.verificacion = sincronizar.verificar(audio, candidato.ruta, temporal)
 
-        sirven = [c for c in candidatos if c.verificacion and c.verificacion.estado != sincronizar.NO_ENCAJA]
-        aviso = ''
-        if not sirven and cliente is not None:
-            temporada, episodio = temporada_y_episodio(video)
-            for resultado in cliente.buscar(consulta, temporada, episodio, idioma, video)[:max_descargas]:
-                try:
-                    ruta = cliente.descargar(resultado, temporal)
-                except opensubtitles.LimiteAgotado:
-                    aviso = 'se agotaron las descargas de hoy en OpenSubtitles'
-                    break
-                candidato = Candidato(f'opensubtitles {resultado.file_id}', ruta, es_sdh(ruta))
-                candidato.verificacion = sincronizar.verificar(audio, ruta, temporal)
-                candidatos.append(candidato)
-                if candidato.verificacion.estado != sincronizar.NO_ENCAJA:
-                    sirven.append(candidato)
-                    if candidato.verificacion.estado == sincronizar.ENCAJA:
-                        break
+        avisos = []
+        for origen in fuentes_descarga or []:
+            if _que_sirven(candidatos):
+                break
+            nuevos, aviso = _descargar_hasta_encajar(origen, video, idioma, consulta, audio, temporal, max_descargas)
+            candidatos += nuevos
+            if aviso:
+                avisos.append(aviso)
 
+        sirven = _que_sirven(candidatos)
         if not sirven:
-            return ResultadoVideo(video, None, None, candidatos, aviso or 'ningun candidato corresponde al audio')
+            return ResultadoVideo(video, None, None, candidatos, '; '.join(avisos) or 'ningun candidato corresponde al audio')
 
         elegido = min(sirven, key=_prioridad)
         fuente = elegido.verificacion.corregido if elegido.verificacion.estado == sincronizar.CORRIDO else elegido.ruta

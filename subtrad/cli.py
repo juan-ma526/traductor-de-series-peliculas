@@ -20,7 +20,10 @@ import sys
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
 
-from subtrad import archivos, config, conseguir, identificar, motor_api, nombres, opensubtitles, partes, postproceso, revisar, sincronizar, video
+import regex
+
+from subtrad import (archivos, config, conseguir, fuentes, gestdown, identificar, motor_api, nombres, opensubtitles, partes,
+                     postproceso, revisar, sincronizar, subdl, video)
 from subtrad.perfil import Perfil, cargar_perfil
 
 CARPETA_TRABAJO = '.traduccion'
@@ -93,24 +96,14 @@ def cmd_identificar(args : argparse.Namespace) -> int:
 
 def cmd_conseguir(args : argparse.Namespace) -> int:
     carpeta = Path(args.carpeta)
-    consulta = args.serie or carpeta.name
-    cliente = None
-    if not args.sin_descargas:
-        try:
-            cliente = opensubtitles.Cliente()
-            if cliente.iniciar_sesion():
-                print("OpenSubtitles: sesion iniciada")
-        except opensubtitles.ErrorOpenSubtitles as error:
-            print(f"Aviso: sin descargas ({error})")
+    # "Serie/Season 2": el nombre para buscar es el de la serie
+    nombre_carpeta = carpeta.parent.name if regex.fullmatch(r'(?i)(season|temporada)\s*\d+', carpeta.name) else carpeta.name
+    consulta = args.serie or nombre_carpeta
+    descargas = [] if args.sin_descargas else _fuentes_de_descarga()
 
     fallidos = 0
     for v in video.videos(carpeta):
-        try:
-            resultado = conseguir.conseguir_video(v, args.idioma, consulta, cliente, args.max_descargas, args.audio)
-        except opensubtitles.ErrorOpenSubtitles as error:
-            print(f"ERROR     {v.name}: {error}")
-            fallidos += 1
-            continue
+        resultado = conseguir.conseguir_video(v, args.idioma, consulta, descargas, args.max_descargas, args.audio)
 
         for c in resultado.candidatos:
             ver = c.verificacion
@@ -123,9 +116,28 @@ def cmd_conseguir(args : argparse.Namespace) -> int:
             print(f"SIN SUBS  {v.name}: {resultado.detalle}")
             fallidos += 1
 
-    if cliente is not None and cliente.restantes is not None:
-        print(f"OpenSubtitles: quedan {cliente.restantes} descargas hoy")
+    for fuente in descargas:
+        if isinstance(fuente, opensubtitles.Cliente) and fuente.restantes is not None:
+            print(f"OpenSubtitles: quedan {fuente.restantes} descargas hoy")
     return 1 if fallidos else 0
+
+
+def _fuentes_de_descarga() -> list[fuentes.Fuente]:
+    """Las fuentes disponibles, en orden: OpenSubtitles, Subdl (si hay clave) y Gestdown (series, sin clave)."""
+    disponibles : list[fuentes.Fuente] = []
+    try:
+        cliente = opensubtitles.Cliente()
+        if cliente.iniciar_sesion():
+            print("OpenSubtitles: sesion iniciada")
+        disponibles.append(cliente)
+    except fuentes.ErrorFuente as error:
+        print(f"Aviso: sin OpenSubtitles ({error})")
+    try:
+        disponibles.append(subdl.Cliente())
+    except fuentes.ErrorFuente as error:
+        print(f"Aviso: sin Subdl ({error})")
+    disponibles.append(gestdown.Cliente())
+    return disponibles
 
 
 def cmd_pendientes(args : argparse.Namespace) -> int:
