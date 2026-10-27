@@ -180,8 +180,21 @@ def reparar(subs : pysubs2.SSAFile, traducciones : dict[int, str]) -> dict[int, 
     return reparadas
 
 
-def validar(subs : pysubs2.SSAFile, esperados : set[int], traducciones : dict[int, str]) -> list[str]:
-    """Errores que impiden insertar: ids faltantes o de mas, tags alterados, etiquetas coladas, lineas pegadas."""
+ERROR_CURSIVAS = 'cursivas alteradas'
+
+
+def _tags(texto : str, sin_cursivas : bool = False) -> list[str]:
+    """Tags de estilo normalizados: {\\i0} y {\\i} cierran la cursiva igual."""
+    tags = [t.replace('{\\i0}', '{\\i}') for t in TAGS_ASS.findall(texto)]
+    if sin_cursivas:
+        tags = [t for t in tags if not CURSIVA.fullmatch(t)]
+    return sorted(tags)
+
+
+def validar(subs : pysubs2.SSAFile, esperados : set[int], traducciones : dict[int, str],
+            tolerar_cursivas : bool = False) -> list[str]:
+    """Errores que impiden insertar: ids faltantes o de mas, tags alterados, etiquetas coladas, lineas pegadas.
+    Con tolerar_cursivas, una cursiva movida o perdida no es error (solo los demas tags: posicion, color, animacion)."""
     errores = []
     faltantes = sorted(esperados - traducciones.keys())
     sobrantes = sorted(traducciones.keys() - esperados)
@@ -192,8 +205,11 @@ def validar(subs : pysubs2.SSAFile, esperados : set[int], traducciones : dict[in
 
     for i in sorted(esperados & traducciones.keys()):
         texto = traducciones[i]
-        if sorted(TAGS_ASS.findall(subs.events[i].text)) != sorted(TAGS_ASS.findall(texto)):
+        original = subs.events[i].text
+        if _tags(original, sin_cursivas=True) != _tags(texto, sin_cursivas=True):
             errores.append(f"[{i}] tags de estilo alterados")
+        elif not tolerar_cursivas and _tags(original) != _tags(texto):
+            errores.append(f"[{i}] {ERROR_CURSIVAS}")
         if ETIQUETAS_COLADAS.search(texto):
             errores.append(f"[{i}] tiene etiquetas Original/Translation")
         if LINEA_TRADUCIDA.search(texto) or regex.search(r'\s\[\d+\]\s', texto):
@@ -211,7 +227,7 @@ def insertar(archivo : Path, trabajo : Path, salida : Path) -> int:
     subs = cargar(archivo)
     traducciones, errores = leer_traducciones(trabajo, manifiesto['partes'])
     traducciones = reparar(subs, traducciones)
-    errores += validar(subs, set(manifiesto['eventos']), traducciones)
+    errores += validar(subs, set(manifiesto['eventos']), traducciones, manifiesto.get('tolerar_cursivas', False))
     if errores:
         raise ErrorInsercion(errores)
 

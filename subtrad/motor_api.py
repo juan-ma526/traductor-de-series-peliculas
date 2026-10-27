@@ -118,10 +118,19 @@ def traducir_capitulo(motor, trabajo : Path, perfil : Perfil) -> None:
             errores += partes.validar(subs, set(esperados), traducciones)
             if not errores:
                 break
+
+            # Ultimo intento y solo quedan cursivas mal puestas: se acepta (perder el enfasis de una palabra es
+            # menor que perder el capitulo). Caso real: Escaflowne, 7 capitulos fallaban solo por cursivas.
+            if intento == INTENTOS - 1 and all(e.endswith(partes.ERROR_CURSIVAS) for e in errores):
+                manifiesto['tolerar_cursivas'] = True
+                (trabajo / 'manifiesto.json').write_text(json.dumps(manifiesto, indent=1), encoding='utf-8')
+                errores = []
+                break
+
             # Se le devuelven los errores al modelo para que corrija sobre su propia respuesta
             mensajes += [{'role': 'assistant', 'content': respuesta},
                          {'role': 'user', 'content': 'Corregi estos errores y responde de nuevo TODAS las lineas:\n' + '\n'.join(errores[:20])}]
-        else:
+        if errores:
             raise ErrorAPI(f'{trabajo.name}/{nombre}: la traduccion no paso la validacion: {errores[:5]}')
 
         texto = '\n'.join(f'[{i}] {traducciones[i]}' for i in esperados)

@@ -54,8 +54,29 @@ def test_traduce_y_corrige_cuando_falla_la_validacion(escribir, tmp_path, servid
 
     assert [e.text for e in cargar(tmp_path / 'ep.es.ass').events] == ['{\\i1}Hola{\\i0} amigo', 'Adiós.']
     assert len(ServidorFalso.pedidos) == 2
-    assert 'tags de estilo' in ServidorFalso.pedidos[1]['messages'][-1]['content']
+    assert 'cursivas alteradas' in ServidorFalso.pedidos[1]['messages'][-1]['content']
     assert motor.uso.entrada == 20
+
+
+def test_acepta_cursivas_perdidas_tras_los_intentos(escribir, tmp_path, servidor):
+    # Caso real (Escaflowne): "asking {\i1}us{\i} for asylum", el modelo nunca logra ubicar la cursiva
+    origen = escribir('ep.en.ass', [('Default', 'Is he asking {\\i1}us{\\i} for asylum?'), ('Default', '{\\an8}Asturia')])
+    trabajo = tmp_path / 'trabajo'
+    partes.preparar(origen, trabajo)
+    ServidorFalso.respuestas = ['[0] ¿Nos pide asilo?\n[1] {\\an8}Asturia'] * motor_api.INTENTOS
+
+    motor_api.traducir_capitulo(motor_api.MotorAPI('modelo-prueba', servidor, clave=''), trabajo, Perfil(serie='Prueba'))
+    partes.insertar(origen, trabajo, tmp_path / 'ep.es.ass')
+    assert [e.text for e in cargar(tmp_path / 'ep.es.ass').events] == ['¿Nos pide asilo?', '{\\an8}Asturia']
+
+
+def test_no_tolera_tags_de_posicion(escribir, tmp_path, servidor):
+    origen = escribir('ep.en.ass', [('Default', '{\\an8}Asturia')])
+    trabajo = tmp_path / 'trabajo'
+    partes.preparar(origen, trabajo)
+    ServidorFalso.respuestas = ['[0] Asturia'] * motor_api.INTENTOS
+    with pytest.raises(motor_api.ErrorAPI):
+        motor_api.traducir_capitulo(motor_api.MotorAPI('modelo-prueba', servidor, clave=''), trabajo, Perfil(serie='Prueba'))
 
 
 def test_falla_si_no_logra_corregir(escribir, tmp_path, servidor):
