@@ -3,6 +3,7 @@
   identificar  que serie es (perfil existente, o candidatos de AniList/TVmaze/TMDB)
   conseguir    consigue el original de cada video (pistas o descarga) verificado contra el audio
   extraer      saca los subtitulos de los videos de una carpeta
+  incluidos    videos que ya traen subtitulos en el idioma destino
   pendientes   lista originales y si ya tienen traduccion
   nombres      nombres propios de los originales que el perfil no cubre
   traducir     traduce por API (OpenAI, OpenRouter, Ollama...) de punta a punta
@@ -138,6 +139,21 @@ def _fuentes_de_descarga() -> list[fuentes.Fuente]:
         print(f"Aviso: sin Subdl ({error})")
     disponibles.append(gestdown.Cliente())
     return disponibles
+
+
+def cmd_incluidos(args : argparse.Namespace) -> int:
+    """Videos que ya traen subtitulos de texto en el idioma destino: normalmente no hace falta traducirlos."""
+    con, sin = 0, 0
+    for v in video.videos(Path(args.carpeta)):
+        pistas = video.pistas_en_idioma(v, args.destino)
+        if pistas:
+            con += 1
+            print(f"INCLUIDO\t{v.name}\t{', '.join(video.describir(p) for p in pistas)}")
+        else:
+            sin += 1
+            print(f"SIN\t{v.name}")
+    print(f"Total: {con} con subtitulos '{args.destino}' incluidos, {sin} sin")
+    return 0
 
 
 def cmd_pendientes(args : argparse.Namespace) -> int:
@@ -316,6 +332,11 @@ def construir_parser() -> argparse.ArgumentParser:
     p.add_argument('--sin-descargas', action='store_true', help='solo verificar lo que ya hay')
     p.add_argument('--audio', help='idioma del audio contra el que verificar (por defecto japones/coreano/chino si hay, si no el primero)')
     p.set_defaults(funcion=cmd_conseguir)
+
+    p = comandos.add_parser('incluidos', help='videos que ya traen subtitulos de texto en el idioma destino')
+    p.add_argument('carpeta')
+    p.add_argument('--destino', default='es')
+    p.set_defaults(funcion=cmd_incluidos)
 
     p = comandos.add_parser('pendientes', help='lista originales y si ya tienen traduccion')
     p.add_argument('carpeta')

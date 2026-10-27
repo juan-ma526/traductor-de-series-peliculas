@@ -26,6 +26,19 @@ IDIOMAS = {
 # Pistas que no son de dialogos completos
 PALABRAS_PARCIALES = ('sign', 'song', 'forced', 'karaoke', 'commentary')
 
+# Variante preferida cuando hay varias pistas del mismo idioma (el destino por defecto es español latino).
+# Caso real (Ted Lasso): "spa" de España y "spa, Latin America" en el mismo video.
+VARIANTES_PREFERIDAS = {'es': ('latin', 'latino', '419')}
+
+
+def pistas_en_idioma(video : Path, idioma : str) -> list[dict]:
+    """Pistas de texto completas (no carteles ni canciones) en el idioma pedido."""
+    codigos = IDIOMAS.get(idioma, {idioma})
+    return [p for p in pistas_subtitulos(video)
+            if p.get('codec_name') in CODECS_TEXTO
+            and p.get('tags', {}).get('language', '').lower() in codigos
+            and not any(palabra in p.get('tags', {}).get('title', '').lower() for palabra in PALABRAS_PARCIALES)]
+
 
 class FfmpegNoEncontrado(Exception):
     """ffmpeg o ffprobe no estan instalados o no estan en el PATH."""
@@ -68,11 +81,12 @@ def elegir_pista(pistas : list[dict], idioma : str) -> dict|None:
     if not candidatas and len(pistas) == 1 and not pistas[0].get('tags', {}).get('language'):
         candidatas = pistas
 
-    def puntaje(pista : dict) -> tuple[int, int, int]:
+    def puntaje(pista : dict) -> tuple[int, int, int, int]:
         titulo = pista.get('tags', {}).get('title', '').lower()
         parcial = any(palabra in titulo for palabra in PALABRAS_PARCIALES)
         es_texto = pista.get('codec_name') in CODECS_TEXTO
-        return (int(es_texto), int(not parcial), -int(pista['index']))
+        preferida = any(palabra in titulo for palabra in VARIANTES_PREFERIDAS.get(idioma, ()))
+        return (int(es_texto), int(not parcial), int(preferida), -int(pista['index']))
 
     return max(candidatas, key=puntaje) if candidatas else None
 

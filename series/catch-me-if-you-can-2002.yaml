@@ -1,0 +1,13 @@
+# Catch Me If You Can (2002). Creado por subtrad identificar; completar nombres_fijos.
+
+serie: Catch Me If You Can
+año: 2002
+tipo: pelicula
+ids:
+  tmdb: 640
+idioma_destino: Latin American Spanish
+codigo: es
+tratamiento: tuteo
+prompt: Translate to natural Latin American Spanish. Keep character, place and organization
+  names unchanged.
+nombres_fijos: []

@@ -40,6 +40,25 @@ def test_sin_año_es_ambiguo(tmp_path):
     assert {c.año for c in resultado.candidatos[:3]} == {2012, 2014, 2019}
 
 
+def _carpeta_con_videos(carpeta : Path, cantidad : int) -> Path:
+    carpeta.mkdir()
+    for n in range(1, cantidad + 1):
+        (carpeta / f'{carpeta.name} - S02E{n:02d}.mkv').write_bytes(b'')
+    return carpeta
+
+
+def test_serie_sin_año_con_un_solo_candidato_queda_clara(tmp_path):
+    # Caso real (Ted Lasso): carpeta sin año y un unico resultado con el titulo exacto
+    carpeta = _carpeta_con_videos(tmp_path / 'Ted Lasso', 12)
+    buscador = lambda _t: [Candidato('Ted Lasso', 2020, 'serie', {'Ted Lasso'}, {'tvmaze': 44458})]
+    assert identificar.identificar(carpeta, tmp_path, [buscador]).claro
+
+
+def test_serie_sin_año_con_homonimos_sigue_ambigua(tmp_path):
+    carpeta = _carpeta_con_videos(tmp_path / 'Kingdom', 12)
+    assert not identificar.identificar(carpeta, tmp_path, BUSCADORES).claro
+
+
 def test_con_año_queda_claro_y_une_las_fuentes(tmp_path):
     carpeta = tmp_path / 'Kingdom (2012)'
     carpeta.mkdir()

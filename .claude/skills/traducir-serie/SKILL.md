@@ -27,6 +27,10 @@ Comandos: `extraer`, `pendientes`, `nombres`, `preparar`, `insertar`, `limpiar`,
   - `AMBIGUO` o `SIN CANDIDATOS`: PREGUNTAR al usuario mostrando los candidatos (titulo, año, tipo, cadena)
     y despues `--crear N` con el elegido. Ejemplo: "Kingdom" puede ser el anime (2012), la serie coreana de Netflix (2019) o la de 2014.
 
+- `subtrad incluidos <carpeta> --destino <codigo>`: si los videos ya traen subtitulos de texto en el idioma destino
+  (ej. Ted Lasso trae "spa, Latin America"), AVISAR al usuario antes de traducir: Plex ya los muestra y una traduccion oficial suele ser mejor.
+  Seguir solo con los que no los traen, o con todos si el usuario lo pide.
+
 ### 2. Cargar o crear el perfil
 Si el perfil es nuevo (recien creado por `identificar --crear`), completarlo (formato de `kingdom-2012.yaml`):
 - Preguntar idioma destino y reglas, o usar las del argumento.

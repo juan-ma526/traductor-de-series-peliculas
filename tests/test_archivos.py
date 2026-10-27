@@ -1,6 +1,6 @@
 from pathlib import Path
 
-from subtrad import archivos
+from subtrad import archivos, video
 
 
 def test_ruta_salida_reemplaza_o_agrega_el_codigo():
@@ -28,3 +28,12 @@ def test_cargar_detecta_encoding_latin1(tmp_path):
     ruta = tmp_path / 'viejo.srt'
     ruta.write_bytes('1\r\n00:00:01,000 --> 00:00:02,000\r\nÉcho Company\r\n'.encode('cp1252'))
     assert archivos.cargar(ruta).events[0].plaintext == 'Écho Company'
+
+
+def test_elige_la_pista_de_español_latino():
+    # Caso real (Ted Lasso): pista de España y pista latina en el mismo video
+    pistas = [
+        {'index': 14, 'codec_name': 'subrip', 'tags': {'language': 'spa'}},
+        {'index': 15, 'codec_name': 'subrip', 'tags': {'language': 'spa', 'title': 'Latin America'}},
+    ]
+    assert video.elegir_pista(pistas, 'es')['index'] == 15

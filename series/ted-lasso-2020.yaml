@@ -1,0 +1,14 @@
+# Ted Lasso (2020). Creado por subtrad identificar; completar nombres_fijos.
+
+serie: Ted Lasso
+año: 2020
+tipo: serie
+ids:
+  tvmaze: 44458
+  tmdb: 97546
+idioma_destino: Latin American Spanish
+codigo: es
+tratamiento: tuteo
+prompt: Translate to natural Latin American Spanish. Keep character, place and organization
+  names unchanged.
+nombres_fijos: []

@@ -147,8 +147,12 @@ def _puntuar(candidato : Candidato, pistas : Pistas) -> int:
     puntaje = 3 if buscado in titulos else (1 if any(buscado in t or t in buscado for t in titulos) else -3)
     if pistas.año and candidato.año:
         puntaje += 3 if pistas.año == candidato.año else (1 if abs(pistas.año - candidato.año) == 1 else -4)
-    if pistas.videos > 1 and candidato.tipo == 'pelicula':
-        puntaje -= 2
+    # El tipo coincide con la carpeta: varios videos y es serie, o uno solo y es pelicula.
+    # Caso real (Ted Lasso): carpeta sin año, unico candidato con el titulo exacto; sin esto quedaba "ambiguo".
+    if pistas.videos > 1:
+        puntaje += -2 if candidato.tipo == 'pelicula' else 1
+    elif pistas.videos == 1 and candidato.tipo == 'pelicula':
+        puntaje += 1
     if pistas.videos and candidato.episodios == pistas.videos:
         puntaje += 1
     return puntaje
