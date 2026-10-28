@@ -152,22 +152,22 @@ Respetar los terminos de cada sitio y no subir los subtitulos descargados al rep
 
 Todo esto aparecio revisando las temporadas 1 a 6 de Kingdom y tiene que quedar automatizado:
 
-- [ ] **Alineacion**: cada linea traducida debe corresponder a su original. Detectar corrimientos comparando largos (paso en S6E02: dos frases unidas corrieron 9 lineas).
-- [ ] **Ids y tags**: mismos `[id]`, mismas `{\i1}...{\i0}` y tags de posicion (Haiku los pierde seguido; el script lo frena).
-- [ ] **Etiquetas filtradas**: buscar `Original\N`, `Translation\N`, `Original:` en el texto (S2 tenia 150 lineas asi, hecha con llm-subtrans).
-- [ ] **Bloques sin traducir**: lineas identicas al ingles (S2E05 tenia 61 seguidas).
-- [ ] **Voseo** si el destino es español latino neutro (S3 tuvo 4 capitulos con voseo).
-- [ ] **Nombres**: contar cada nombre del glosario en original y traduccion; si faltan, buscar como se tradujeron ("duque Hyou").
-- [ ] **Reemplazos seguros**:
+- [x] **Alineacion**: cada linea traducida debe corresponder a su original. Detectar corrimientos comparando largos (paso en S6E02: dos frases unidas corrieron 9 lineas).
+- [x] **Ids y tags**: mismos `[id]`, mismas `{\i1}...{\i0}` y tags de posicion (Haiku los pierde seguido; el script lo frena).
+- [x] **Etiquetas filtradas**: buscar `Original\N`, `Translation\N`, `Original:` en el texto (S2 tenia 150 lineas asi, hecha con llm-subtrans).
+- [x] **Bloques sin traducir**: lineas identicas al ingles (S2E05 tenia 61 seguidas).
+- [x] **Voseo** si el destino es español latino neutro (S3 tuvo 4 capitulos con voseo).
+- [~] **Nombres**: `revisar` avisa de los nombres del perfil (`mapear`) que quedaron sin adaptar. Falta: contar cada nombre de `nombres_fijos` en original y traduccion para detectar los que se tradujeron ("duque Hyou").
+- [x] **Reemplazos seguros**:
   - solo sobre el campo Text, nunca estilo ni actor (un estilo "Quanrong Language" se habria roto);
   - de mayor a menor largo ("He Liao Diao" quedo como "He Liao Ten" 489 veces por hacerlo al reves);
   - aceptar el inicio de palabra despues de `\N` (`\b` falla ahi);
   - incluir version en MAYUSCULAS para carteles ("HANDAN" -> "KANTAN");
   - nombres ambiguos solo por temporada, nunca globales.
-- [ ] **Titulos en pantalla** sin traducir (estilo/actor "Title").
-- [ ] **OP/ED**: no traducir karaoke ni estilos de canciones salvo que se pida.
-- [ ] **Caracteres raros** (cirilico u otros alfabetos que se cuelan).
-- [ ] **Backup** antes de cada postproceso y reporte final por capitulo.
+- [x] **Titulos en pantalla** sin traducir (estilo/actor "Title"): los carteles se traducen y los que quedan en ingles los marca `revisar`.
+- [x] **OP/ED**: no traducir karaoke ni estilos de canciones salvo que se pida.
+- [x] **Caracteres raros** (cirilico u otros alfabetos que se cuelan).
+- [~] **Backup** antes de cada postproceso y reporte final por capitulo: `revisar` reporta por capitulo y `conseguir` guarda en `.respaldo/` lo que reemplaza. Falta: copia antes de `postproceso`.
 - [x] **Pista equivocada**: una pista que viene dentro del video puede ser de OTRO contenido (World Is Dancing: 6 de 9 capitulos con subs traian pistas de otro anime). Toda pista, archivo o descarga se verifica contra el audio con alass: si el corrimiento no es parejo, se descarta.
 - [x] **Sincronizacion por audio**: ffsubsync fallo con este anime (musica de fondo); alass funciono. Para alass se extrae el audio a WAV (con ffprobe nuevo no puede leer algunos mkv).
 
@@ -182,7 +182,7 @@ Todo esto aparecio revisando las temporadas 1 a 6 de Kingdom y tiene que quedar 
 7. [x] Motor por API compatible con OpenAI (`subtrad traducir`), con validacion y correccion por parte.
 8. [x] `subtrad identificar`: perfil existente o candidatos de AniList + TVmaze (+ TMDB con clave); si es ambiguo, el agente pregunta.
 9. [~] `conseguir.py` + `sincronizar.py`: hecho con OpenSubtitles, Subdl y Gestdown (Addic7ed) + alass (verifica pistas, archivos y descargas contra el audio). Falta: Animetosho para anime (su buscador funciona, pero el servidor de descargas `storage.animetosho.org` no resolvia en DNS el 2026-10-28).
-10. [ ] Documentar en el README: instalacion, flujo completo y como crear el perfil de una serie nueva.
+10. [x] Documentar en el README: instalacion, flujo completo y como crear el perfil de una serie nueva.
 11. [ ] Borrar el clon de `llm-subtrans` cuando todo funcione en el repo nuevo.
 
 ## 9. Preguntas abiertas
