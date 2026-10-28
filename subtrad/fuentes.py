@@ -105,8 +105,10 @@ def elegir_de_zip(contenido : bytes, temporada : int|None, episodio : int|None) 
                 return bool(coincidencia) and int(coincidencia.group(2)) == episodio and \
                     (temporada is None or int(coincidencia.group(1)) == temporada)
             del_episodio = [i for i in candidatos if es_el_episodio(i.filename)]
-            # Si los nombres no dicen el episodio y hay uno solo, es ese
-            candidatos = del_episodio or (candidatos if len(candidatos) == 1 else [])
+            # Si hay uno solo y su nombre no dice el episodio, es ese.
+            # Si dice otro, no: Subdl marca como temporada completa zips que solo traen el S01E01.
+            sin_numero = [i for i in candidatos if not EPISODIO.search(Path(i.filename).name)]
+            candidatos = del_episodio or (sin_numero if len(candidatos) == 1 else [])
         if not candidatos:
             raise ErrorFuente('El zip no trae un subtitulo para este video')
         elegido = max(candidatos, key=lambda i: i.file_size)

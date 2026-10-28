@@ -27,6 +27,13 @@ def test_zip_de_temporada_elige_el_episodio():
         fuentes.elegir_de_zip(contenido, 2, 5)
 
 
+def test_zip_con_un_solo_archivo_de_otro_episodio():
+    # Caso real (Eminence S01E19): "temporada completa" en Subdl que solo traia el S01E01
+    assert fuentes.elegir_de_zip(_zip({'Serie.srt': 'x'}), 1, 19) == ('Serie.srt', b'x')
+    with pytest.raises(fuentes.ErrorFuente):
+        fuentes.elegir_de_zip(_zip({'Serie - S01E01.English[SDH].ass': 'x'}), 1, 19)
+
+
 def test_zip_de_pelicula_elige_el_mas_grande():
     contenido = _zip({'peli.forced.srt': 'corto', 'peli.srt': 'el subtitulo completo'})
     assert fuentes.elegir_de_zip(contenido, None, None)[0] == 'peli.srt'
