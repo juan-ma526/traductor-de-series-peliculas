@@ -1,6 +1,7 @@
 ---
 description: Traduce las partes de UN capitulo de subtitulos siguiendo el INSTRUCCIONES.txt que le indican. Usar un subagente por capitulo.
 mode: subagent
+model: opencode-go/gpt-6-luna
 temperature: 0.2
 permission:
   edit: allow

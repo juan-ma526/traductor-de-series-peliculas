@@ -61,7 +61,18 @@ Abrir OpenCode en la carpeta del repo: los comandos estan en `.opencode/commands
 ```
 
 El flujo es el mismo que en Claude Code; cada capitulo lo traduce el subagente `@traductor-subtitulos`.
-Para usar un modelo barato en la traduccion, agregar `model: <proveedor>/<modelo>` en `.opencode/agents/traductor-subtitulos.md`.
+Si su modelo falla (no disponible, cupo agotado), se usa `@traductor-subtitulos-respaldo`.
+
+Modelos por defecto (elegidos comparando 15 modelos de OpenCode Go con un capitulo de Ted Lasso contra la traduccion oficial):
+
+| Subagente | Modelo | Por que |
+|---|---|---|
+| `traductor-subtitulos` | `opencode-go/gpt-6-luna` | Calidad casi a la par de los mejores, el mas rapido y el mas barato |
+| `traductor-subtitulos-respaldo` | `opencode-go/deepseek-v4.1-flash` | Buena calidad, rapido y barato |
+
+Para cambiarlo, editar la linea `model:` de `.opencode/agents/traductor-subtitulos.md` (o del respaldo).
+Los modelos disponibles se listan con `opencode models`.
+Otras opciones que tradujeron bien: `opencode-go/gemini-4-argon` (la mejor calidad, unas 20 veces mas cara) y `opencode-go/glm-5.3-flash` (barato pero lento).
 
 ## Uso por API (sin agentes)
 

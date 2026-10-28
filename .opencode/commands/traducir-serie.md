@@ -12,5 +12,6 @@ Leelo antes de empezar. Las unicas diferencias en OpenCode:
   (con la herramienta task), uno por capitulo, pasandole este mensaje:
   "Lee el archivo <ruta de INSTRUCCIONES.txt> y segui exactamente esas instrucciones."
   Lanza varios a la vez si el modelo lo permite; si no, uno por uno.
+  Si un capitulo falla porque el modelo no esta disponible o se agoto su cupo, repetilo con `@traductor-subtitulos-respaldo` (otro modelo, mismo trabajo).
 - Para preguntarle algo al usuario (serie ambigua, reglas de un perfil nuevo), preguntale directamente y espera la respuesta.
 - Alternativa sin subagentes: `subtrad traducir <carpeta> --perfil <perfil>` traduce todo por API (ver README, motor API).
